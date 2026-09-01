@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/flight-atlas.schema.json",
+  "title": "Flight Atlas import",
+  "type": "object",
+  "required": ["flights"],
+  "properties": {
+    "flights": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "required": ["date", "origin", "destination"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "flightNumber": { "type": "string" },
+          "airline": { "type": "string" },
+          "origin": { "type": "string", "pattern": "^[A-Za-z]{3}$" },
+          "destination": { "type": "string", "pattern": "^[A-Za-z]{3}$" },
+          "departureTime": { "type": ["string", "null"] },
+          "arrivalTime": { "type": ["string", "null"] },
+          "aircraft": { "type": "string" },
+          "registration": { "type": ["string", "null"] },
+          "aircraftFirstFlight": { "type": ["string", "null"], "format": "date" }
+        }
+      }
+    }
+  }
+}
