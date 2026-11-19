@@ -21,6 +21,7 @@
           "arrivalTime": { "type": ["string", "null"] },
           "aircraft": { "type": "string" },
           "registration": { "type": ["string", "null"] },
+          "aircraftSerialNumber": { "type": ["string", "null"] },
           "aircraftFirstFlight": { "type": ["string", "null"], "format": "date" }
         }
       }

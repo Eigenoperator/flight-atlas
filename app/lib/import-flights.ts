@@ -16,7 +16,7 @@ export async function importFlightFile(file: File) {
     rows = candidate as Record<string, unknown>[];
   } else {
     const XLSX = await import('xlsx');
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false });
     const firstSheetName = workbook.SheetNames[0];
     if (!firstSheetName) throw new Error('The workbook does not contain a worksheet.');
     rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[firstSheetName], {

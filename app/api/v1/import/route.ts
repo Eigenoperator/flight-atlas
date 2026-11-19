@@ -26,7 +26,7 @@ export function GET() {
     requiredFields: ['date', 'origin', 'destination'],
     optionalFields: [
       'flightNumber', 'airline', 'departureTime', 'arrivalTime',
-      'aircraft', 'registration', 'aircraftFirstFlight',
+      'aircraft', 'registration', 'aircraftSerialNumber', 'aircraftFirstFlight',
     ],
     example: {
       flights: [{
@@ -35,6 +35,7 @@ export function GET() {
         origin: 'LHR',
         destination: 'CDG',
         aircraft: 'A320',
+        aircraftSerialNumber: '12345',
       }],
     },
   });

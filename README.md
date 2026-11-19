@@ -41,9 +41,10 @@ Download [`public/templates/flight-atlas-template.csv`](public/templates/flight-
 | Arrival Time | `11:25` | No |
 | Aircraft | `A320` | No |
 | Registration | `G-EXAMPLE` | No |
+| Aircraft Serial Number | `12345` | No |
 | Aircraft First Flight | `2019-03-12` | No |
 
-Common Chinese headings such as `日期`, `航班号`, `起飞地`, `起飞时间`, `降落地`, `降落时间`, `机型`, `注册号` and `首飞时间` are also recognized.
+Common Chinese headings such as `日期`, `航班号`, `起飞地`, `起飞时间`, `降落地`, `降落时间`, `机型`, `注册号`, `飞机序列号` and `首飞时间` are also recognized.
 
 To auto-load a private log on one computer, import it once, choose **Download normalized JSON**, and save the download as `public/data/local-flight-data.json`. That path is ignored by Git.
 

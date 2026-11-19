@@ -2,11 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { geoDistance, geoGraticule10, geoInterpolate, geoOrthographic, geoPath } from 'd3-geo';
+import { geoDistance, geoGraticule10, geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import land110 from 'world-atlas/land-110m.json';
+import { ExtendedInsights } from './components/extended-insights';
 import demoFlightData from './data/demo-flight-data.json';
-import type { Airport, Flight, FlightDataset } from './lib/flight-data';
+import { airlineLogoUrl } from './lib/airline-logos';
+import { displayAirportCity, type Flight, type FlightDataset } from './lib/flight-data';
+import { countAirportVisits } from './lib/flight-stats';
+import {
+  coordinateAtRouteProgress,
+  makeRouteGeometry,
+  type Coordinate,
+} from './lib/route-geometry';
 
 const demoDataset = demoFlightData as FlightDataset;
 
@@ -19,19 +27,23 @@ const airlineNames: Record<string, string> = {
   JT: 'Lion Air', JX: 'Starlux Airlines', KN: 'China United Airlines',
   MH: 'Malaysia Airlines', MM: 'Peach Aviation', MU: 'China Eastern',
   NH: 'All Nippon Airways', OS: 'Austrian Airlines', SC: 'Shandong Airlines',
-  SQ: 'Singapore Airlines', U2: 'easyJet', VA: 'Virgin Australia',
+  SQ: 'Singapore Airlines', U2: 'easyJet', UA: 'United Airlines',
+  VA: 'Virgin Australia', WN: 'Southwest Airlines', XE: 'JSX',
 };
 
 const aircraftNames: Record<string, string> = {
-  A20N: 'Airbus A320neo', A21N: 'Airbus A321neo', A319: 'Airbus A319',
-  A320: 'Airbus A320', A321: 'Airbus A321', A32N: 'Airbus A320neo',
-  A332: 'Airbus A330-200', A333: 'Airbus A330-300', A339: 'Airbus A330-900neo',
-  A359: 'Airbus A350-900', A35K: 'Airbus A350-1000', A388: 'Airbus A380-800',
+  A306: 'Airbus 300-600',
+  A20N: 'Airbus 320neo', A21N: 'Airbus 321neo', A319: 'Airbus 319',
+  A320: 'Airbus 320', A321: 'Airbus 321', A32N: 'Airbus 320neo',
+  A332: 'Airbus 330-200', A333: 'Airbus 330-300', A339: 'Airbus 330-900neo',
+  A359: 'Airbus 350-900', A35K: 'Airbus 350-1000', A388: 'Airbus 380-800',
   B717: 'Boeing 717', B737: 'Boeing 737', B738: 'Boeing 737-800',
-  B739: 'Boeing 737-900', B744: 'Boeing 747-400', B763: 'Boeing 767-300',
+  B739: 'Boeing 737-900', B38M: 'Boeing 737 MAX 8', B39M: 'Boeing 737 MAX 9',
+  B744: 'Boeing 747-400', B753: 'Boeing 757-300', B763: 'Boeing 767-300',
   B772: 'Boeing 777-200', B773: 'Boeing 777-300', B77W: 'Boeing 777-300ER',
   B788: 'Boeing 787-8', B789: 'Boeing 787-9', B78X: 'Boeing 787-10',
-  B7M8: 'Boeing 737 MAX 8', C919: 'COMAC C919',
+  B7M8: 'Boeing 737 MAX 8', C919: 'COMAC C919', CRJ7: 'Bombardier CRJ-700',
+  E75W: 'Embraer 175', AT46: 'ATR 42-600',
 };
 
 const land = feature(
@@ -39,31 +51,44 @@ const land = feature(
   (land110 as unknown as { objects: { land: never } }).objects.land,
 );
 
-type Coordinate = [number, number];
-type RouteGeometry = { type: 'LineString'; coordinates: Coordinate[] };
-
-function makeRouteGeometry(flight: Flight, airports: Record<string, Airport>): RouteGeometry {
-  const origin = airports[flight.origin];
-  const destination = airports[flight.destination];
-  const interpolate = geoInterpolate(
-    [origin.longitude, origin.latitude],
-    [destination.longitude, destination.latitude],
-  );
-  const coordinates = Array.from(
-    { length: 49 },
-    (_, index) => interpolate(index / 48) as Coordinate,
-  );
-  return { type: 'LineString', coordinates };
-}
-
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-GB').format(value);
+}
+
+const millisecondsPerYear = 365.2425 * 24 * 60 * 60 * 1000;
+const ignoredAircraftFirstFlights = new Set(['B-2212|1973-11-09']);
+
+function aircraftAgeRecord(flight: Flight) {
+  if (!flight.aircraftFirstFlight) return null;
+  if (ignoredAircraftFirstFlights.has(`${flight.registration ?? ''}|${flight.aircraftFirstFlight}`)) return null;
+  const flightTime = new Date(`${flight.date}T00:00:00Z`).getTime();
+  const firstFlightTime = new Date(`${flight.aircraftFirstFlight}T00:00:00Z`).getTime();
+  if (!Number.isFinite(flightTime) || !Number.isFinite(firstFlightTime) || firstFlightTime > flightTime) return null;
+  return {
+    flight,
+    firstFlightTime,
+    ageYears: (flightTime - firstFlightTime) / millisecondsPerYear,
+  };
+}
+
+function formatAverageDate(timestamp: number | null) {
+  if (timestamp === null) return '—';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(timestamp));
 }
 
 function countBy<T>(items: T[], key: (item: T) => string) {
   const counts = new Map<string, number>();
   items.forEach((item) => counts.set(key(item), (counts.get(key(item)) ?? 0) + 1));
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function routeKey(flight: Flight) {
+  return [flight.origin, flight.destination].sort().join('–');
 }
 
 function aircraftMaker(code: string) {
@@ -89,6 +114,11 @@ function FlightAtlasExperience() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showRouteHistory, setShowRouteHistory] = useState(true);
   const [logbookQuery, setLogbookQuery] = useState('');
+  const [selectedAirportCode, setSelectedAirportCode] = useState<string | null>(null);
+  const [showAllAircraftRanking, setShowAllAircraftRanking] = useState(false);
+  const [showAllAirlineRanking, setShowAllAirlineRanking] = useState(false);
+  const [showAllRouteRanking, setShowAllRouteRanking] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const [globeRotation, setGlobeRotation] = useState<[number, number, number]>([-112, -22, 0]);
   const [followFlight, setFollowFlight] = useState(true);
   const playbackRef = useRef(true);
@@ -123,30 +153,41 @@ function FlightAtlasExperience() {
   const airlines = useMemo(() => [...new Set(flights.map((flight) => flight.airline))].sort(), [flights]);
   const aircraftTypes = useMemo(() => [...new Set(flights.map((flight) => flight.aircraft))].sort(), [flights]);
 
-  const routeGeometries = useMemo(() => new Map(
-    flights.map((flight) => [flight.id, makeRouteGeometry(flight, airports)]),
-  ), [airports, flights]);
+  const routeGeometries = useMemo(() => {
+    const routeGroups = new Map<string, Flight[]>();
+    flights.forEach((flight) => {
+      const routeKey = `${flight.origin}-${flight.destination}`;
+      routeGroups.set(routeKey, [...(routeGroups.get(routeKey) ?? []), flight]);
+    });
+
+    return new Map(flights.map((flight) => {
+      const routeKey = `${flight.origin}-${flight.destination}`;
+      const routeGroup = routeGroups.get(routeKey) ?? [flight];
+      const lane = routeGroup.length > 1
+        ? routeGroup.findIndex((candidate) => candidate.id === flight.id) - (routeGroup.length - 1) / 2
+        : undefined;
+      return [flight.id, makeRouteGeometry(flight, airports, lane)];
+    }));
+  }, [airports, flights]);
 
   const filteredFlights = useMemo(() => flights.filter((flight) => (
     (yearFilter === 'all' || flight.year === Number(yearFilter))
     && (airlineFilter === 'all' || flight.airline === airlineFilter)
     && (aircraftFilter === 'all' || flight.aircraft === aircraftFilter)
   )), [flights, yearFilter, airlineFilter, aircraftFilter]);
+  const comparisonFlights = useMemo(() => flights.filter((flight) => (
+    (airlineFilter === 'all' || flight.airline === airlineFilter)
+    && (aircraftFilter === 'all' || flight.aircraft === aircraftFilter)
+  )), [flights, airlineFilter, aircraftFilter]);
 
   const activeFlight = filteredFlights[currentIndex];
-  const activeInterpolator = useMemo(() => {
+  const activeRoute = useMemo(() => {
     if (!activeFlight) return null;
-    const origin = airports[activeFlight.origin];
-    const destination = airports[activeFlight.destination];
-    if (!origin || !destination) return null;
-    return geoInterpolate(
-      [origin.longitude, origin.latitude],
-      [destination.longitude, destination.latitude],
-    );
-  }, [activeFlight, airports]);
+    return routeGeometries.get(activeFlight.id) ?? null;
+  }, [activeFlight, routeGeometries]);
 
   useEffect(() => {
-    if (!activeFlight || !activeInterpolator) return;
+    if (!activeFlight || !activeRoute) return;
     let frame = 0;
     let arrivalTimer = 0;
     let hasFocusedGlobe = false;
@@ -160,7 +201,7 @@ function FlightAtlasExperience() {
         : 1 - ((-2 * rawProgress + 2) ** 3) / 2;
       setFlightProgress(easedProgress);
       if (followFlightRef.current && !dragRef.current && !hasFocusedGlobe) {
-        const routeMidpoint = activeInterpolator(0.5) as Coordinate;
+        const routeMidpoint = coordinateAtRouteProgress(activeRoute, 0.5);
         setGlobeRotation([-routeMidpoint[0], -routeMidpoint[1], 0]);
         hasFocusedGlobe = true;
       }
@@ -182,7 +223,7 @@ function FlightAtlasExperience() {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(arrivalTimer);
     };
-  }, [activeFlight, activeInterpolator, animationNonce, filteredFlights.length, playbackSpeed]);
+  }, [activeFlight, activeRoute, animationNonce, filteredFlights.length, playbackSpeed]);
 
   const projection = useMemo(() => geoOrthographic()
     .translate([690, 300])
@@ -198,6 +239,16 @@ function FlightAtlasExperience() {
     () => filteredFlights.map((flight) => mapPath(routeGeometries.get(flight.id)!) ?? ''),
     [filteredFlights, mapPath, routeGeometries],
   );
+  const relatedRouteIndexes = useMemo(() => {
+    if (!activeFlight) return [];
+    return filteredFlights.flatMap((flight, index) => (
+      flight.id !== activeFlight.id
+      && flight.origin === activeFlight.origin
+      && flight.destination === activeFlight.destination
+        ? [index]
+        : []
+    ));
+  }, [activeFlight, filteredFlights]);
   const visited = filteredFlights.slice(0, currentIndex);
   const filteredDistance = filteredFlights.reduce((sum, flight) => sum + flight.distanceKm, 0);
   const distanceSoFar = visited.reduce((sum, flight) => sum + flight.distanceKm, 0)
@@ -206,8 +257,8 @@ function FlightAtlasExperience() {
 
   const activeOrigin = activeFlight ? airports[activeFlight.origin] : null;
   const activeDestination = activeFlight ? airports[activeFlight.destination] : null;
-  const movingCoordinate = activeInterpolator
-    ? activeInterpolator(flightProgress) as Coordinate
+  const movingCoordinate = activeRoute
+    ? coordinateAtRouteProgress(activeRoute, flightProgress)
     : null;
   const originPoint = activeOrigin
     ? projection([activeOrigin.longitude, activeOrigin.latitude])
@@ -229,31 +280,52 @@ function FlightAtlasExperience() {
 
   const filteredAirportCodes = new Set(filteredFlights.flatMap((flight) => [flight.origin, flight.destination]));
   const filteredCountries = new Set([...filteredAirportCodes].map((code) => airports[code]?.country ?? 'Unknown'));
-  const airportCounts = countBy(
-    filteredFlights.flatMap((flight) => [flight.origin, flight.destination]),
-    (code) => code,
-  );
-  const topAirport = airportCounts[0];
+  const airportVisitCounts = countAirportVisits(filteredFlights);
+  const airportVisitMap = new Map(airportVisitCounts);
+  const topAirport = airportVisitCounts[0];
   const longestFlight = [...filteredFlights].sort((a, b) => b.distanceKm - a.distanceKm)[0];
+  const visibleAirportNodes = [...filteredAirportCodes].flatMap((code) => {
+    const airport = airports[code];
+    if (!airport) return [];
+    const isVisible = geoDistance(globeCentre, [airport.longitude, airport.latitude]) <= Math.PI / 2;
+    const point = isVisible ? projection([airport.longitude, airport.latitude]) : null;
+    return point ? [{ code, airport, point, visits: airportVisitMap.get(code) ?? 0 }] : [];
+  });
 
   const annualData = years.map((year) => {
     const yearFlights = filteredFlights.filter((flight) => flight.year === year);
+    const ageRecords = yearFlights.flatMap((flight) => {
+      const record = aircraftAgeRecord(flight);
+      return record ? [record] : [];
+    });
     return {
       year,
       count: yearFlights.length,
       distance: yearFlights.reduce((sum, flight) => sum + flight.distanceKm, 0),
+      aircraftAgeRecords: ageRecords.length,
+      averageFirstFlight: ageRecords.length
+        ? ageRecords.reduce((sum, record) => sum + record.firstFlightTime, 0) / ageRecords.length
+        : null,
+      averageAircraftAge: ageRecords.length
+        ? ageRecords.reduce((sum, record) => sum + record.ageYears, 0) / ageRecords.length
+        : null,
     };
   });
   const maxAnnualCount = Math.max(1, ...annualData.map((item) => item.count));
+  const maxAnnualAircraftAge = Math.max(1, ...annualData.map((item) => item.averageAircraftAge ?? 0));
   const busiestYear = [...annualData].sort((a, b) => b.count - a.count)[0];
-  const aircraftCounts = countBy(filteredFlights, (flight) => flight.aircraft).slice(0, 8);
-  const airlineCounts = countBy(filteredFlights, (flight) => flight.airline).slice(0, 7);
-  const maxAircraftCount = Math.max(1, ...(aircraftCounts.map(([, count]) => count)));
-  const maxAirlineCount = Math.max(1, ...(airlineCounts.map(([, count]) => count)));
-  const routeCounts = countBy(
-    filteredFlights,
-    (flight) => [flight.origin, flight.destination].sort().join('–'),
-  ).slice(0, 6);
+  const allAircraftCounts = countBy(filteredFlights, (flight) => flight.aircraft);
+  const aircraftCounts = showAllAircraftRanking ? allAircraftCounts : allAircraftCounts.slice(0, 8);
+  const allAirlineCounts = countBy(filteredFlights, (flight) => flight.airline);
+  const airlineCounts = showAllAirlineRanking ? allAirlineCounts : allAirlineCounts.slice(0, 12);
+  const maxAircraftCount = Math.max(1, ...(allAircraftCounts.map(([, count]) => count)));
+  const allRouteCounts = countBy(filteredFlights, routeKey);
+  const routeCounts = showAllRouteRanking ? allRouteCounts : allRouteCounts.slice(0, 6);
+  const selectedRouteFlights = selectedRoute
+    ? [...filteredFlights]
+      .filter((flight) => routeKey(flight) === selectedRoute)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
+    : [];
   const makerCounts = Object.fromEntries(countBy(filteredFlights, (flight) => aircraftMaker(flight.aircraft)));
   const makerTotal = Math.max(1, filteredFlights.length);
   const airbusPercent = ((makerCounts.Airbus ?? 0) / makerTotal) * 100;
@@ -272,12 +344,8 @@ function FlightAtlasExperience() {
   const monthCounts = countBy(filteredFlights, (flight) => flight.date.slice(5, 7));
   const topMonth = monthCounts[0];
   const aircraftAges = filteredFlights.flatMap((flight) => {
-    if (!flight.aircraftFirstFlight) return [];
-    const ageYears = (
-      new Date(`${flight.date}T00:00:00Z`).getTime()
-      - new Date(`${flight.aircraftFirstFlight}T00:00:00Z`).getTime()
-    ) / (365.2425 * 24 * 60 * 60 * 1000);
-    return ageYears >= 0 ? [{ flight, ageYears }] : [];
+    const record = aircraftAgeRecord(flight);
+    return record ? [record] : [];
   });
   const averageAircraftAge = aircraftAges.length
     ? aircraftAges.reduce((sum, item) => sum + item.ageYears, 0) / aircraftAges.length
@@ -309,6 +377,7 @@ function FlightAtlasExperience() {
     flight.aircraft,
     aircraftNames[flight.aircraft],
     flight.registration,
+    flight.aircraftSerialNumber,
     airlineNames[flight.airline],
   ].some((value) => value?.toLowerCase().includes(normalisedQuery)));
   const earthLaps = filteredDistance / 40075;
@@ -330,6 +399,11 @@ function FlightAtlasExperience() {
     setAnimationNonce((nonce) => nonce + 1);
     setShowAllFlights(false);
     setLogbookQuery('');
+    setSelectedAirportCode(null);
+    setShowAllAircraftRanking(false);
+    setShowAllAirlineRanking(false);
+    setShowAllRouteRanking(false);
+    setSelectedRoute(null);
     playbackRef.current = true;
     setIsPlaying(true);
   };
@@ -366,6 +440,7 @@ function FlightAtlasExperience() {
     playbackRef.current = false;
     setIsPlaying(false);
     setShowAllFlights(false);
+    setSelectedRoute(null);
   };
 
   const applyYearFilter = (value: string) => {
@@ -376,6 +451,7 @@ function FlightAtlasExperience() {
     playbackRef.current = false;
     setIsPlaying(false);
     setShowAllFlights(false);
+    setSelectedRoute(null);
   };
 
   const applyAirlineFilter = (value: string) => {
@@ -386,6 +462,7 @@ function FlightAtlasExperience() {
     playbackRef.current = false;
     setIsPlaying(false);
     setShowAllFlights(false);
+    setSelectedRoute(null);
   };
 
   const applyAircraftFilter = (value: string) => {
@@ -396,6 +473,7 @@ function FlightAtlasExperience() {
     playbackRef.current = false;
     setIsPlaying(false);
     setShowAllFlights(false);
+    setSelectedRoute(null);
   };
 
   const togglePlayback = () => {
@@ -415,8 +493,8 @@ function FlightAtlasExperience() {
     const nextValue = !followFlight;
     followFlightRef.current = nextValue;
     setFollowFlight(nextValue);
-    if (nextValue && activeInterpolator) {
-      const routeMidpoint = activeInterpolator(0.5) as Coordinate;
+    if (nextValue && activeRoute) {
+      const routeMidpoint = coordinateAtRouteProgress(activeRoute, 0.5);
       setGlobeRotation([-routeMidpoint[0], -routeMidpoint[1], 0]);
     }
   };
@@ -466,6 +544,13 @@ function FlightAtlasExperience() {
     setAnimationNonce((nonce) => nonce + 1);
   };
 
+  const selectFlightById = (flightId: number) => {
+    const index = filteredFlights.findIndex((flight) => flight.id === flightId);
+    if (index < 0) return;
+    selectFlightIndex(index);
+    document.getElementById('map')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const changePlaybackSpeed = (speed: number) => {
     setPlaybackSpeed(speed);
     setFlightProgress(0);
@@ -485,9 +570,9 @@ function FlightAtlasExperience() {
   };
 
   const downloadLogbook = () => {
-    const escapeCsv = (value: string | number | null) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+    const escapeCsv = (value: string | number | null | undefined) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     const rows = [
-      ['Date', 'Flight', 'Origin', 'Destination', 'Departure', 'Arrival', 'Aircraft', 'Registration', 'Distance (km)'],
+      ['Date', 'Flight', 'Origin', 'Destination', 'Departure', 'Arrival', 'Aircraft', 'Registration', 'Aircraft Serial Number', 'Distance (km)'],
       ...[...logbookFlights].reverse().map((flight) => [
         flight.date,
         flight.flightNumber,
@@ -497,6 +582,7 @@ function FlightAtlasExperience() {
         flight.arrivalTime,
         flight.aircraft,
         flight.registration,
+        flight.aircraftSerialNumber,
         flight.distanceKm,
       ]),
     ];
@@ -546,7 +632,7 @@ function FlightAtlasExperience() {
           <p className="eyebrow">Bring your own logbook</p>
           <h2 id="import-title">Turn a spreadsheet into your flight atlas.</h2>
           <p>
-            Import Excel, CSV or JSON. Dates, routes, local times, aircraft and registrations
+            Import Excel, CSV or JSON. Dates, routes, local times, aircraft, registrations and serial numbers
             are recognised from English or Chinese column names.
           </p>
           <div className="import-links">
@@ -663,6 +749,13 @@ function FlightAtlasExperience() {
                 className="route route-visited"
               />
             ) : null)}
+            {showRouteHistory && relatedRouteIndexes.map((index) => (
+              <path
+                key={`related-${filteredFlights[index].id}`}
+                d={routePaths[index]}
+                className="route route-related"
+              />
+            ))}
             {activeFlight && (
               <path
                 key={`route-${activeFlight.id}`}
@@ -673,6 +766,30 @@ function FlightAtlasExperience() {
                 strokeDashoffset={1 - flightProgress}
               />
             )}
+            {visibleAirportNodes.map(({ code, airport, point, visits }) => (
+              <g
+                key={`airport-${code}`}
+                className={`airport-hotspot${selectedAirportCode === code ? ' is-selected' : ''}`}
+                transform={`translate(${point[0].toFixed(3)} ${point[1].toFixed(3)})`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${code} airport profile`}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSelectedAirportCode(code);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedAirportCode(code);
+                  }
+                }}
+              >
+                <circle r={Math.min(7, 2.2 + Math.sqrt(Math.max(1, visits)) * 0.46)} />
+                <title>{`${code} · ${displayAirportCity(airport)} · ${visits} visits`}</title>
+              </g>
+            ))}
             {originPoint && originVisible && (
               <g transform={`translate(${originPoint[0].toFixed(3)} ${originPoint[1].toFixed(3)})`}>
                 <circle r="3.2" className="airport-node" />
@@ -709,16 +826,19 @@ function FlightAtlasExperience() {
 
           {activeFlight ? (
             <div className="map-overlay">
-              <p className="overlay-label">Now viewing</p>
+              <div className="overlay-heading">
+                <p className="overlay-label">Now viewing</p>
+                <span>Flight {activeFlight.id} of {flights.length}</span>
+              </div>
               <div className="route-code">
                 <strong>{activeFlight.origin}</strong>
                 <span aria-hidden="true">→</span>
                 <strong>{activeFlight.destination}</strong>
               </div>
-              <p>{airports[activeFlight.origin].city} to {airports[activeFlight.destination].city}</p>
+              <p>{displayAirportCity(airports[activeFlight.origin])} to {displayAirportCity(airports[activeFlight.destination])}</p>
               <div className="overlay-rule" />
               <p>{activeFlight.date} · {activeFlight.flightNumber}</p>
-              <p>{aircraftNames[activeFlight.aircraft] ?? activeFlight.aircraft}</p>
+              <p>{aircraftNames[activeFlight.aircraft] ?? activeFlight.aircraft}{activeFlight.registration ? ` · ${activeFlight.registration}` : ''}</p>
               <p className="overlay-distance">{formatNumber(activeFlight.distanceKm)} km</p>
               <div className="flight-stage">
                 <i><b style={{ width: `${flightProgress * 100}%` }} /></i>
@@ -730,6 +850,14 @@ function FlightAtlasExperience() {
               <p className="overlay-label">No matching routes</p>
               <strong>Adjust or reset the filters to continue.</strong>
             </div>
+          )}
+
+          {selectedAirportCode && airports[selectedAirportCode] && (
+            <a className="airport-peek" href="#airport-detail">
+              <span>Airport selected</span>
+              <strong>{selectedAirportCode}</strong>
+              <small>{displayAirportCity(airports[selectedAirportCode])} · {airportVisitMap.get(selectedAirportCode) ?? 0} visits</small>
+            </a>
           )}
 
           <div className="timeline-controls">
@@ -815,9 +943,9 @@ function FlightAtlasExperience() {
             <small>{longestFlight ? `${formatNumber(longestFlight.distanceKm)} km` : 'No data'}</small>
           </article>
           <article>
-            <span>Most-used airport</span>
+            <span>Most-visited airport</span>
             <strong>{topAirport?.[0] ?? '—'}</strong>
-            <small>{topAirport ? `${topAirport[1]} movements` : 'No data'}</small>
+            <small>{topAirport ? `${topAirport[1]} visits` : 'No data'}</small>
           </article>
           <article>
             <span>Countries reached</span>
@@ -877,21 +1005,58 @@ function FlightAtlasExperience() {
                 </button>
               ))}
             </div>
+            {allAircraftCounts.length > 8 && (
+              <button
+                type="button"
+                className="ranking-toggle"
+                aria-expanded={showAllAircraftRanking}
+                onClick={() => setShowAllAircraftRanking((value) => !value)}
+              >
+                <span>{showAllAircraftRanking ? 'Show top 8' : `Show all ${allAircraftCounts.length} aircraft types`}</span>
+                <strong aria-hidden="true">{showAllAircraftRanking ? '−' : '+'}</strong>
+              </button>
+            )}
           </article>
 
           <article className="chart-panel rank-panel">
             <div className="panel-title">
               <div><span>04</span><h3>Airlines flown</h3></div>
             </div>
-            <div className="rank-list airline-ranks">
+            <div className="airline-logo-grid">
               {airlineCounts.map(([code, count]) => (
-                <button type="button" key={code} onClick={() => applyAirlineFilter(code)}>
-                  <span className="rank-name"><strong>{code}</strong><small>{airlineNames[code] ?? code}</small></span>
-                  <span className="rank-track"><i style={{ width: `${(count / maxAirlineCount) * 100}%` }} /></span>
-                  <strong className="rank-value">{count}</strong>
+                <button
+                  type="button"
+                  key={code}
+                  className={airlineFilter === code ? 'is-active' : ''}
+                  onClick={() => applyAirlineFilter(airlineFilter === code ? 'all' : code)}
+                  aria-pressed={airlineFilter === code}
+                  aria-label={`${airlineNames[code] ?? code}: ${count} flights${airlineFilter === code ? '. Click to clear filter' : ''}`}
+                  title={`${airlineNames[code] ?? code} · ${count} flights`}
+                >
+                  <span className="airline-logo">
+                    <img
+                      src={airlineLogoUrl(code)}
+                      alt=""
+                      width="128"
+                      height="128"
+                      onError={(event) => event.currentTarget.parentElement?.classList.add('logo-missing')}
+                    />
+                    <strong>{code}</strong>
+                  </span>
                 </button>
               ))}
             </div>
+            {allAirlineCounts.length > 12 && (
+              <button
+                type="button"
+                className="ranking-toggle"
+                aria-expanded={showAllAirlineRanking}
+                onClick={() => setShowAllAirlineRanking((value) => !value)}
+              >
+                <span>{showAllAirlineRanking ? 'Show top 12' : `Show all ${allAirlineCounts.length} airlines`}</span>
+                <strong aria-hidden="true">{showAllAirlineRanking ? '−' : '+'}</strong>
+              </button>
+            )}
           </article>
 
           <article className="chart-panel routes-panel">
@@ -901,14 +1066,70 @@ function FlightAtlasExperience() {
             </div>
             <div className="route-ranking">
               {routeCounts.map(([route, count], index) => (
-                <div key={route}>
+                <button
+                  type="button"
+                  key={route}
+                  className={selectedRoute === route ? 'is-active' : ''}
+                  aria-expanded={selectedRoute === route && selectedRouteFlights.length > 0}
+                  onClick={() => setSelectedRoute((value) => value === route ? null : route)}
+                >
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <strong>{route}</strong>
                   <i />
                   <small>{count} {count === 1 ? 'flight' : 'flights'}</small>
-                </div>
+                </button>
               ))}
             </div>
+            {allRouteCounts.length > 6 && (
+              <button
+                type="button"
+                className="ranking-toggle"
+                aria-expanded={showAllRouteRanking}
+                onClick={() => setShowAllRouteRanking((value) => !value)}
+              >
+                <span>{showAllRouteRanking ? 'Show top 6' : `Show all ${allRouteCounts.length} routes`}</span>
+                <strong aria-hidden="true">{showAllRouteRanking ? '−' : '+'}</strong>
+              </button>
+            )}
+            {selectedRoute && selectedRouteFlights.length > 0 && (
+              <section className="route-flight-details" aria-live="polite" aria-label={`Flights on ${selectedRoute}`}>
+                <div className="route-flight-details-title">
+                  <div>
+                    <span>Flights on route</span>
+                    <h4>{selectedRoute}</h4>
+                    <p>{selectedRouteFlights.length} {selectedRouteFlights.length === 1 ? 'flight' : 'flights'} · both directions</p>
+                  </div>
+                  <button type="button" onClick={() => setSelectedRoute(null)}>Close</button>
+                </div>
+                <div className="route-flight-list">
+                  {selectedRouteFlights.map((flight) => (
+                    <button
+                      type="button"
+                      className="route-flight-card"
+                      key={flight.id}
+                      onClick={() => selectFlightById(flight.id)}
+                      aria-label={`View ${flight.flightNumber}, ${flight.origin} to ${flight.destination}, on the route globe`}
+                    >
+                      <span className="route-flight-logo">
+                        <img
+                          src={airlineLogoUrl(flight.airline)}
+                          alt=""
+                          width="96"
+                          height="96"
+                          onError={(event) => event.currentTarget.parentElement?.classList.add('logo-missing')}
+                        />
+                        <strong>{flight.airline}</strong>
+                      </span>
+                      <span className="route-flight-copy">
+                        <span><strong>{flight.flightNumber}</strong><time>{flight.date}</time></span>
+                        <b>{flight.origin} <i aria-hidden="true">→</i> {flight.destination}</b>
+                        <small>{aircraftNames[flight.aircraft] ?? flight.aircraft}{flight.registration ? ` · ${flight.registration}` : ''}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
           </article>
 
           <article className="chart-panel cumulative-panel">
@@ -993,6 +1214,55 @@ function FlightAtlasExperience() {
               </div>
             </div>
           </article>
+
+          <article className="chart-panel fleet-history-panel">
+            <div className="panel-title">
+              <div><span>09</span><h3>Average fleet age by year</h3></div>
+              <p>Flights with known first-flight dates</p>
+            </div>
+            <div className="fleet-history-wrap">
+              <table className="fleet-history-table">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Average first flight</th>
+                    <th>Average age at flight</th>
+                    <th>Coverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {annualData.map((item) => (
+                    <tr key={item.year}>
+                      <td><strong>{item.year}</strong></td>
+                      <td>{formatAverageDate(item.averageFirstFlight)}</td>
+                      <td>
+                        {item.averageAircraftAge === null ? (
+                          <span className="no-age-data">—</span>
+                        ) : (
+                          <div className="annual-age-value">
+                            <i><b style={{ width: `${(item.averageAircraftAge / maxAnnualAircraftAge) * 100}%` }} /></i>
+                            <strong>{item.averageAircraftAge.toFixed(1)} years</strong>
+                          </div>
+                        )}
+                      </td>
+                      <td>{item.aircraftAgeRecords} / {item.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <ExtendedInsights
+            airports={airports}
+            aircraftNames={aircraftNames}
+            allFlights={flights}
+            filteredFlights={filteredFlights}
+            comparisonFlights={comparisonFlights}
+            selectedAirportCode={selectedAirportCode}
+            onSelectAirport={setSelectedAirportCode}
+            onSelectFlight={selectFlightById}
+          />
         </div>
       </section>
 
@@ -1057,7 +1327,7 @@ function FlightAtlasExperience() {
 
       <footer>
         <p><strong>Flight Atlas</strong> · Open source, local-first and private by design.</p>
-        <p>Distances use great-circle calculations in kilometres. Airport coordinates from <a href="https://ourairports.com/data/" target="_blank" rel="noreferrer">OurAirports</a>.</p>
+        <p>Distances use great-circle calculations in kilometres. Airport visits merge same-airport connections under 8 hours. Airport coordinates from <a href="https://ourairports.com/data/" target="_blank" rel="noreferrer">OurAirports</a>.</p>
       </footer>
     </main>
   );
