@@ -110,6 +110,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
   font-size: clamp(18px, 2vw, 25px);
   line-height: 1.5;
 }
+.hero-demo-note {
+  max-width: 690px;
+  margin: 18px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid rgba(111, 215, 218, 0.55);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
 .hero-kpis { border-top: 1px solid var(--line); }
 .hero-kpis div {
   min-height: 68px;
