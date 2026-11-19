@@ -1,6 +1,7 @@
 const vectorLogoCodes = new Set([
   '3U', 'AA', 'BA', 'CA', 'CX', 'CZ', 'DL', 'F9', 'HO', 'JL', 'JT',
   'JX', 'KN', 'MH', 'MM', 'MU', 'NH', 'OS', 'SC', 'SQ', 'U2', 'VA', 'WN',
+  'DEMO',
 ]);
 
 export function airlineLogoUrl(code: string) {

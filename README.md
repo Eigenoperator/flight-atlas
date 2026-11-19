@@ -69,6 +69,18 @@ curl -X POST http://localhost:3000/api/v1/import \
 - `plane.xlsx`, `app/data/flight-data.json` and `public/data/local-flight-data.json` are ignored by Git.
 - Before publishing a fork, check `git status` and ensure no private logbook is staged.
 
+## Deploy to Cloudflare Pages
+
+Authenticate Wrangler, create a Pages project, then build and deploy the advanced-mode Worker bundle:
+
+```bash
+npx wrangler login
+npx wrangler pages project create fushimi-flight-atlas --production-branch main --compatibility-date 2026-05-15 --compatibility-flags nodejs_compat
+npm run deploy:pages
+```
+
+Change `fushimi-flight-atlas` in `package.json` if your Pages project uses a different name. The deployment build removes `public/data/local-flight-data.json` automatically, even when that private local file exists.
+
 ## Quality checks
 
 ```bash

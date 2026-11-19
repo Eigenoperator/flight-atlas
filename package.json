@@ -10,8 +10,10 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build && node scripts/sanitize-build.mjs",
+    "build:pages": "npm run build && node scripts/prepare-cloudflare-pages.mjs",
+    "deploy:pages": "npm run build:pages && wrangler pages deploy dist/cloudflare-pages --project-name fushimi-flight-atlas --branch main --no-bundle",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern work",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
