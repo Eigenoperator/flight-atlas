@@ -34,19 +34,23 @@ const airlineNames: Record<string, string> = {
 
 const aircraftNames: Record<string, string> = {
   A306: 'Airbus 300-600',
-  A20N: 'Airbus 320neo', A21N: 'Airbus 321neo', A319: 'Airbus 319',
+  A19N: 'Airbus 319neo', A20N: 'Airbus 320neo', A21N: 'Airbus 321neo', A319: 'Airbus 319',
   A320: 'Airbus 320', A321: 'Airbus 321', A32N: 'Airbus 320neo',
   A332: 'Airbus 330-200', A333: 'Airbus 330-300', A339: 'Airbus 330-900neo',
   A359: 'Airbus 350-900', A35K: 'Airbus 350-1000', A388: 'Airbus 380-800',
   B717: 'Boeing 717', B732: 'Boeing 737-200', B733: 'Boeing 737-300',
   B734: 'Boeing 737-400', B737: 'Boeing 737', B738: 'Boeing 737-800',
   B739: 'Boeing 737-900', B38M: 'Boeing 737 MAX 8', B39M: 'Boeing 737 MAX 9',
-  B744: 'Boeing 747-400', B752: 'Boeing 757-200', B753: 'Boeing 757-300',
-  B763: 'Boeing 767-300',
-  B772: 'Boeing 777-200', B773: 'Boeing 777-300', B77W: 'Boeing 777-300ER',
+  B744: 'Boeing 747-400', B748: 'Boeing 747-8', B752: 'Boeing 757-200', B753: 'Boeing 757-300',
+  B763: 'Boeing 767-300', B764: 'Boeing 767-400',
+  B772: 'Boeing 777-200', B773: 'Boeing 777-300', B77L: 'Boeing 777-200LR / 777F', B77W: 'Boeing 777-300ER',
   B788: 'Boeing 787-8', B789: 'Boeing 787-9', B78X: 'Boeing 787-10',
-  B7M8: 'Boeing 737 MAX 8', C919: 'COMAC C919', CRJ7: 'Bombardier CRJ-700',
-  E75W: 'Embraer 175', AT46: 'ATR 42-600', MD82: 'McDonnell Douglas MD-82',
+  B7M8: 'Boeing 737 MAX 8', BCS1: 'Airbus 220-100', BCS3: 'Airbus 220-300',
+  C909: 'COMAC C909', C919: 'COMAC C919', CRJ7: 'Bombardier CRJ-700', DH8D: 'De Havilland Canada Dash 8-400',
+  E135: 'Embraer 135', E145: 'Embraer 145', E170: 'Embraer 170', E190: 'Embraer 190',
+  E195: 'Embraer 195', E290: 'Embraer 190-E2', E75W: 'Embraer 175',
+  AT46: 'ATR 42-600', AT76: 'ATR 72-600', D228: 'Dornier 228', F100: 'Fokker 100',
+  F70: 'Fokker 70', MD82: 'McDonnell Douglas MD-82', SF34: 'Saab 340',
 };
 
 const land = feature(

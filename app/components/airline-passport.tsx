@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import fleetCatalogJson from '../data/airline-fleet-catalog.json';
 import { airlineLogoUrl } from '../lib/airline-logos';
 import {
   airlineTypeCatalog,
@@ -18,12 +19,54 @@ type AirlinePassportProps = {
 
 type PassportTab = 'types' | 'airframes' | 'liveries';
 
+type FleetCatalog = {
+  generatedAt: string;
+  observedFrom: string;
+  observedTo: string;
+  source: { name: string; url: string; license: string; method: string };
+  airlines: Record<string, {
+    callsignPrefix: string;
+    types: Record<string, string[]>;
+  }>;
+  verifiedAirlines?: Record<string, {
+    verifiedAt: string;
+    types: Record<string, number>;
+    countSource: { name: string; url: string };
+    rosterSource: { name: string; url: string };
+  }>;
+};
+
+type AirframeRow = {
+  registration: string;
+  type: string;
+  flights: Flight[];
+  serial: string | null;
+  collected: boolean;
+};
+
+const fleetCatalog = fleetCatalogJson as FleetCatalog;
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-GB').format(value);
 }
 
 function percentage(part: number, total: number) {
   return total ? Math.round((part / total) * 100) : 0;
+}
+
+function ordinal(value: number) {
+  const remainder100 = value % 100;
+  if (remainder100 >= 11 && remainder100 <= 13) return `${value}th`;
+  return `${value}${value % 10 === 1 ? 'st' : value % 10 === 2 ? 'nd' : value % 10 === 3 ? 'rd' : 'th'}`;
+}
+
+function formatReferenceDate(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 export function AirlinePassport({
@@ -35,6 +78,8 @@ export function AirlinePassport({
   const [selectedAirline, setSelectedAirline] = useState('');
   const [activeTab, setActiveTab] = useState<PassportTab>('types');
   const [showAllAirlines, setShowAllAirlines] = useState(false);
+  const [airframeType, setAirframeType] = useState('');
+  const [selectedRegistration, setSelectedRegistration] = useState<string | null>(null);
 
   const airlineCollections = useMemo(() => {
     const grouped = new Map<string, Flight[]>();
@@ -58,11 +103,46 @@ export function AirlinePassport({
   );
   const selectedFlights = useMemo(() => selectedCollection?.flights ?? [], [selectedCollection]);
   const referenceTypes = useMemo(() => airlineTypeCatalog[selectedCode] ?? [], [selectedCode]);
+  const observedTypes = useMemo(
+    () => fleetCatalog.airlines[selectedCode]?.types ?? {},
+    [selectedCode],
+  );
   const loggedTypes = selectedCollection?.types ?? new Set<string>();
   const collectedReferenceTypes = referenceTypes.filter((code) => loggedTypes.has(code));
   const registrationCoverage = selectedFlights.filter((flight) => flight.registration).length;
   const distance = selectedFlights.reduce((sum, flight) => sum + flight.distanceKm, 0);
   const routes = new Set(selectedFlights.map((flight) => [flight.origin, flight.destination].sort().join('–')));
+
+  const airframesByType = useMemo(() => {
+    const flightsByTypeAndRegistration = new Map<string, Map<string, Flight[]>>();
+    selectedFlights.forEach((flight) => {
+      if (!flight.registration) return;
+      const type = passportAircraftType(flight.aircraft);
+      const typeFlights = flightsByTypeAndRegistration.get(type) ?? new Map<string, Flight[]>();
+      typeFlights.set(flight.registration, [...(typeFlights.get(flight.registration) ?? []), flight]);
+      flightsByTypeAndRegistration.set(type, typeFlights);
+    });
+
+    const typeCodes = [...new Set([...referenceTypes, ...flightsByTypeAndRegistration.keys()])];
+    const roster = new Map<string, AirframeRow[]>();
+    typeCodes.forEach((type) => {
+      const logged = flightsByTypeAndRegistration.get(type) ?? new Map<string, Flight[]>();
+      const registrations = [...new Set([...(observedTypes[type] ?? []), ...logged.keys()])];
+      roster.set(type, registrations
+        .map((registration) => {
+          const registrationFlights = logged.get(registration) ?? [];
+          return {
+            registration,
+            type,
+            flights: registrationFlights,
+            serial: registrationFlights.find((flight) => flight.aircraftSerialNumber)?.aircraftSerialNumber ?? null,
+            collected: registrationFlights.length > 0,
+          };
+        })
+        .sort((a, b) => Number(b.collected) - Number(a.collected) || a.registration.localeCompare(b.registration)));
+    });
+    return roster;
+  }, [observedTypes, referenceTypes, selectedFlights]);
 
   const typeRows = useMemo(() => {
     const byType = new Map<string, Flight[]>();
@@ -74,43 +154,35 @@ export function AirlinePassport({
     return codes
       .map((code) => {
         const typeFlights = byType.get(code) ?? [];
+        const roster = airframesByType.get(code) ?? [];
         return {
           code,
           flights: typeFlights,
-          registrations: new Set(typeFlights.flatMap((flight) => flight.registration ? [flight.registration] : [])),
+          roster,
+          collected: roster.filter((airframe) => airframe.collected).length,
           inReference: referenceTypes.includes(code),
         };
       })
       .sort((a, b) => Number(Boolean(b.flights.length)) - Number(Boolean(a.flights.length))
         || b.flights.length - a.flights.length
         || a.code.localeCompare(b.code));
-  }, [referenceTypes, selectedFlights]);
+  }, [airframesByType, referenceTypes, selectedFlights]);
 
-  const airframes = useMemo(() => {
-    const byRegistration = new Map<string, Flight[]>();
-    selectedFlights.forEach((flight) => {
-      if (!flight.registration) return;
-      byRegistration.set(flight.registration, [...(byRegistration.get(flight.registration) ?? []), flight]);
-    });
-    return [...byRegistration.entries()]
-      .map(([registration, airframeFlights]) => ({
-        registration,
-        flights: airframeFlights,
-        type: passportAircraftType(airframeFlights[0].aircraft),
-        serial: airframeFlights.find((flight) => flight.aircraftSerialNumber)?.aircraftSerialNumber ?? null,
-        first: airframeFlights[0],
-        last: airframeFlights.at(-1)!,
-      }))
-      .sort((a, b) => a.type.localeCompare(b.type) || a.registration.localeCompare(b.registration));
-  }, [selectedFlights]);
-
-  const airframesByType = useMemo(() => {
-    const grouped = new Map<string, typeof airframes>();
-    airframes.forEach((airframe) => grouped.set(airframe.type, [...(grouped.get(airframe.type) ?? []), airframe]));
-    return [...grouped.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
-  }, [airframes]);
+  const effectiveAirframeType = typeRows.some((row) => row.code === airframeType)
+    ? airframeType
+    : typeRows[0]?.code ?? '';
+  const visibleAirframes = airframesByType.get(effectiveAirframeType) ?? [];
+  const selectedAirframe = selectedRegistration
+    ? visibleAirframes.find((airframe) => airframe.registration === selectedRegistration && airframe.collected) ?? null
+    : null;
+  const totalRoster = [...airframesByType.values()].reduce((sum, roster) => sum + roster.length, 0);
+  const collectedAirframes = [...airframesByType.values()].reduce(
+    (sum, roster) => sum + roster.filter((airframe) => airframe.collected).length,
+    0,
+  );
 
   const liveryReferences = specialLiveryCatalog[selectedCode] ?? [];
+  const verifiedFleet = fleetCatalog.verifiedAirlines?.[selectedCode];
   const registrationSet = selectedCollection?.registrations ?? new Set<string>();
   const collectedLiveries = liveryReferences.filter((livery) => registrationSet.has(livery.registration));
   const firstFlight = selectedFlights[0];
@@ -119,11 +191,17 @@ export function AirlinePassport({
 
   if (!selectedCollection) return null;
 
+  const openTypeRoster = (type: string) => {
+    setAirframeType(type);
+    setSelectedRegistration(null);
+    setActiveTab('airframes');
+  };
+
   return (
     <article className="chart-panel airline-passport-panel" id="passport">
       <div className="panel-title airline-passport-title">
         <div><span>18</span><h3>Airline passport</h3></div>
-        <p>Fleet types, individual aircraft and special liveries</p>
+        <p>Aircraft types, observed fleets and special liveries</p>
       </div>
 
       <div className={`airline-passport-picker${showAllAirlines ? ' is-expanded' : ''}`} aria-label="Choose an airline collection">
@@ -140,6 +218,8 @@ export function AirlinePassport({
               onClick={() => {
                 setSelectedAirline(entry.code);
                 setActiveTab('types');
+                setAirframeType('');
+                setSelectedRegistration(null);
               }}
             >
               <span className="airline-passport-picker-logo">
@@ -193,28 +273,34 @@ export function AirlinePassport({
         </header>
         <div className="airline-passport-kpis">
           <div><span>Flights</span><strong>{selectedFlights.length}</strong><small>{formatNumber(distance)} km</small></div>
-          <div><span>Aircraft types</span><strong>{loggedTypes.size}</strong><small>{referenceTypes.length ? `${collectedReferenceTypes.length} of ${referenceTypes.length} in starter catalogue` : 'No reference catalogue'}</small></div>
-          <div><span>Individual aircraft</span><strong>{airframes.length}</strong><small>{registrationCoverage} of {selectedFlights.length} flights identified</small></div>
+          <div><span>Aircraft types</span><strong>{loggedTypes.size}</strong><small>{referenceTypes.length ? `${collectedReferenceTypes.length} of ${referenceTypes.length} in type catalogue` : 'No type reference'}</small></div>
+          <div><span>Individual aircraft</span><strong>{collectedAirframes}</strong><small>{totalRoster ? `${collectedAirframes} of ${totalRoster} observed or logged` : `${registrationCoverage} identified flights`}</small></div>
           <div><span>Special liveries</span><strong>{collectedLiveries.length}</strong><small>{liveryReferences.length ? `${collectedLiveries.length} of ${liveryReferences.length} known liveries` : 'No livery reference yet'}</small></div>
           <div><span>Routes</span><strong>{routes.size}</strong><small>{firstFlight ? `${firstFlight.origin}—${firstFlight.destination} first` : '—'}</small></div>
         </div>
       </section>
 
       <div className="airline-passport-tabs" role="tablist" aria-label="Airline passport detail">
-        <button type="button" role="tab" aria-selected={activeTab === 'types'} className={activeTab === 'types' ? 'is-active' : ''} onClick={() => setActiveTab('types')}>Aircraft types <span>{loggedTypes.size}</span></button>
-        <button type="button" role="tab" aria-selected={activeTab === 'airframes'} className={activeTab === 'airframes' ? 'is-active' : ''} onClick={() => setActiveTab('airframes')}>Individual aircraft <span>{airframes.length}</span></button>
+        <button type="button" role="tab" aria-selected={activeTab === 'types'} className={activeTab === 'types' ? 'is-active' : ''} onClick={() => setActiveTab('types')}>Aircraft types <span>{loggedTypes.size}/{typeRows.length}</span></button>
+        <button type="button" role="tab" aria-selected={activeTab === 'airframes'} className={activeTab === 'airframes' ? 'is-active' : ''} onClick={() => setActiveTab('airframes')}>Individual aircraft <span>{collectedAirframes}/{totalRoster || '—'}</span></button>
         <button type="button" role="tab" aria-selected={activeTab === 'liveries'} className={activeTab === 'liveries' ? 'is-active' : ''} onClick={() => setActiveTab('liveries')}>Special liveries <span>{collectedLiveries.length}/{liveryReferences.length || '—'}</span></button>
       </div>
 
       {activeTab === 'types' && (
         <div className="passport-type-grid" role="tabpanel">
           {typeRows.map((row) => (
-            <article key={row.code} className={row.flights.length ? 'is-collected' : 'is-missing'}>
+            <button
+              type="button"
+              key={row.code}
+              className={row.flights.length ? 'is-collected' : 'is-missing'}
+              onClick={() => openTypeRoster(row.code)}
+            >
               <div><strong>{row.code}</strong><span>{row.flights.length ? 'Collected' : 'Not yet'}</span></div>
               <h5>{aircraftNames[row.code] ?? row.code}</h5>
-              <p>{row.flights.length} {row.flights.length === 1 ? 'flight' : 'flights'} · {row.registrations.size} known {row.registrations.size === 1 ? 'aircraft' : 'aircraft'}</p>
-              {!row.inReference && row.flights.length > 0 && <small>Logged outside the starter catalogue</small>}
-            </article>
+              <p>{row.flights.length} {row.flights.length === 1 ? 'flight' : 'flights'} · {row.collected}/{row.roster.length || '—'} aircraft flown</p>
+              <i><b style={{ width: `${percentage(row.collected, row.roster.length)}%` }} /></i>
+              {!row.inReference && row.flights.length > 0 && <small>Historic logbook type</small>}
+            </button>
           ))}
         </div>
       )}
@@ -222,28 +308,91 @@ export function AirlinePassport({
       {activeTab === 'airframes' && (
         <div className="passport-airframes" role="tabpanel">
           <div className="passport-coverage">
-            <span>Registration coverage</span>
-            <i><b style={{ width: `${percentage(registrationCoverage, selectedFlights.length)}%` }} /></i>
-            <strong>{percentage(registrationCoverage, selectedFlights.length)}%</strong>
+            <span>Observed fleet collected</span>
+            <i><b style={{ width: `${percentage(collectedAirframes, totalRoster)}%` }} /></i>
+            <strong>{collectedAirframes}/{totalRoster || '—'}</strong>
           </div>
-          {airframesByType.map(([type, typeAirframes], index) => (
-            <details key={type} open={index < 2}>
-              <summary>
-                <span><strong>{type}</strong><small>{aircraftNames[type] ?? type}</small></span>
-                <b>{typeAirframes.length} {typeAirframes.length === 1 ? 'aircraft' : 'aircraft'}</b>
-              </summary>
-              <div>
-                {typeAirframes.map((airframe) => (
-                  <button type="button" key={airframe.registration} onClick={() => onSelectFlight(airframe.last.id)}>
-                    <span><strong>{airframe.registration}</strong><small>{airframe.serial ? `MSN ${airframe.serial}` : 'Serial not recorded'}</small></span>
-                    <span><strong>{airframe.flights.length}</strong><small>{airframe.flights.length === 1 ? 'flight' : 'flights'}</small></span>
-                    <span><strong>{airframe.first.date === airframe.last.date ? airframe.first.date : `${airframe.first.date} — ${airframe.last.date}`}</strong><small>First to latest check-in</small></span>
+
+          <div className="passport-type-picker" aria-label="Choose aircraft type">
+            {typeRows.map((row) => (
+              <button
+                type="button"
+                key={row.code}
+                className={effectiveAirframeType === row.code ? 'is-active' : ''}
+                onClick={() => {
+                  setAirframeType(row.code);
+                  setSelectedRegistration(null);
+                }}
+              >
+                <strong>{row.code}</strong>
+                <span>{row.collected}/{row.roster.length || '—'}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="passport-roster-heading">
+            <div>
+              <strong>{effectiveAirframeType}</strong>
+              <span>{aircraftNames[effectiveAirframeType] ?? effectiveAirframeType}</span>
+            </div>
+            <p>{visibleAirframes.filter((airframe) => airframe.collected).length} of {visibleAirframes.length} aircraft flown</p>
+          </div>
+
+          {selectedAirframe && (
+            <section className="airframe-trip-history" aria-live="polite">
+              <div className="airframe-trip-history-title">
+                <div>
+                  <span>Collected aircraft</span>
+                  <strong>{selectedAirframe.registration}</strong>
+                  <small>{aircraftNames[selectedAirframe.type] ?? selectedAirframe.type}{selectedAirframe.serial ? ` · MSN ${selectedAirframe.serial}` : ''}</small>
+                </div>
+                <p>All journeys on this aircraft · {selectedAirframe.flights.length} {selectedAirframe.flights.length === 1 ? 'flight' : 'flights'}</p>
+                <button type="button" aria-label="Close aircraft history" onClick={() => setSelectedRegistration(null)}>Close <span aria-hidden="true">×</span></button>
+              </div>
+              <div className="milestone-flight-grid airframe-journey-grid">
+                {selectedAirframe.flights.map((flight, index) => (
+                  <button type="button" className="milestone-flight-card airframe-journey-card" key={flight.id} onClick={() => onSelectFlight(flight.id)}>
+                    <span className="milestone-flight-index"><strong>{ordinal(index + 1)}</strong><small>journey</small></span>
+                    <span className="milestone-flight-logo" title={flight.airline}>
+                      <img
+                        src={airlineLogoUrl(flight.airline)}
+                        alt={`${flight.airline} logo`}
+                        width="128"
+                        height="128"
+                        onError={(event) => event.currentTarget.parentElement?.classList.add('logo-missing')}
+                      />
+                      <strong>{flight.airline}</strong>
+                    </span>
+                    <span className="milestone-flight-copy">
+                      <small>{flight.date} · {flight.flightNumber}</small>
+                      <strong>{flight.origin} → {flight.destination}</strong>
+                      <span>{aircraftNames[flight.aircraft] ?? flight.aircraft} · {selectedAirframe.registration}{flight.aircraftSerialNumber ? ` · MSN ${flight.aircraftSerialNumber}` : ''}</span>
+                    </span>
                   </button>
                 ))}
               </div>
-            </details>
-          ))}
-          {!airframes.length && <p className="passport-empty">No aircraft registrations were recorded for this airline.</p>}
+            </section>
+          )}
+
+          <div className="passport-registration-grid">
+            {visibleAirframes.map((airframe) => (
+              <button
+                type="button"
+                key={airframe.registration}
+                className={airframe.collected ? 'is-collected' : 'is-missing'}
+                disabled={!airframe.collected}
+                aria-pressed={selectedAirframe?.registration === airframe.registration}
+                onClick={() => setSelectedRegistration(airframe.registration)}
+              >
+                <span aria-hidden="true">{airframe.collected ? '✓' : '○'}</span>
+                <strong>{airframe.registration}</strong>
+                {airframe.collected
+                  ? <small>{airframe.flights.length} {airframe.flights.length === 1 ? 'flight' : 'flights'}{airframe.serial ? ` · MSN ${airframe.serial}` : ''}</small>
+                  : <small>Not flown</small>}
+              </button>
+            ))}
+          </div>
+          {!visibleAirframes.length && <p className="passport-empty">No observed registrations are available for this aircraft type.</p>}
         </div>
       )}
 
@@ -275,7 +424,13 @@ export function AirlinePassport({
       )}
 
       <p className="airline-passport-note">
-        Type and livery percentages use a maintained starter catalogue, not a live fleet database. Logged flights and registrations always come from the current file, including aircraft outside the catalogue.
+        {verifiedFleet ? <>
+          Verified fleet types ({Object.keys(verifiedFleet.types).join(', ')}):{' '}
+          <a href={verifiedFleet.countSource.url} target="_blank" rel="noreferrer">official airline count</a> +{' '}
+          <a href={verifiedFleet.rosterSource.url} target="_blank" rel="noreferrer">registration roster</a>, checked {formatReferenceDate(verifiedFleet.verifiedAt)}.{' '}
+        </> : null}
+        Other types use an observed-fleet fallback from {formatReferenceDate(fleetCatalog.observedFrom)} — {formatReferenceDate(fleetCatalog.observedTo)} via{' '}
+        <a href={fleetCatalog.source.url} target="_blank" rel="noreferrer">{fleetCatalog.source.name}</a> ({fleetCatalog.source.license}). Logged historic aircraft are always added; unverified types are not presented as an official complete fleet.
       </p>
     </article>
   );

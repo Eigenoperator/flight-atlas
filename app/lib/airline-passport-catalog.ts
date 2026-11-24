@@ -5,40 +5,40 @@ export type SpecialLiveryReference = {
   note: string;
 };
 
-// This is intentionally a starter collection catalogue rather than a live fleet database.
-// Airlines move aircraft between fleets frequently, while a personal logbook is permanent.
-// Logged aircraft are therefore always shown even when they sit outside this reference set.
+// This type scope keeps ADS-B callsign false positives out of each airline collection.
+// Airlines move aircraft between fleets frequently, while a personal logbook is permanent,
+// so logged types are always shown even when they sit outside this reference set.
 export const airlineTypeCatalog: Record<string, string[]> = {
   '3U': ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359'],
   '9C': ['A320', 'A20N', 'A321', 'A21N'],
   AA: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'B738', 'B38M', 'B788', 'B789', 'B77W'],
-  AS: ['B717', 'B737', 'B738', 'B739', 'B38M', 'B39M', 'E75W'],
+  AS: ['A21N', 'A332', 'A333', 'B717', 'B737', 'B738', 'B739', 'B38M', 'B39M', 'B789', 'E75W'],
   BA: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A35K', 'A388', 'B772', 'B77W', 'B788', 'B789', 'B78X'],
   BC: ['B738', 'B38M'],
-  CA: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B737', 'B738', 'B38M', 'B744', 'B748', 'B77W', 'B789', 'C919'],
-  CI: ['A21N', 'A333', 'A359', 'B738', 'B744', 'B77W'],
-  CX: ['A21N', 'A321', 'A333', 'A359', 'A35K', 'B744', 'B77W'],
-  CZ: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B738', 'B38M', 'B77W', 'B788', 'B789', 'C919'],
-  DL: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A339', 'A359', 'B717', 'B738', 'B739', 'B752', 'B753', 'B763', 'B764', 'CRJ7', 'E75W'],
+  CA: ['A19N', 'A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B737', 'B738', 'B38M', 'B744', 'B748', 'B77W', 'B789', 'C909', 'C919'],
+  CI: ['A21N', 'A333', 'A359', 'B738', 'B744', 'B77L', 'B77W'],
+  CX: ['A21N', 'A321', 'A333', 'A359', 'A35K', 'B744', 'B748', 'B773', 'B77W'],
+  CZ: ['A19N', 'A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B738', 'B38M', 'B773', 'B77L', 'B77W', 'B788', 'B789', 'C909', 'C919'],
+  DL: ['A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A339', 'A359', 'B717', 'B738', 'B739', 'B752', 'B753', 'B763', 'B764', 'BCS1', 'BCS3', 'CRJ7', 'E75W'],
   F9: ['A320', 'A20N', 'A321', 'A21N'],
-  FM: ['B738', 'B763', 'B789'],
+  FM: ['A20N', 'A321', 'A332', 'A333', 'B38M', 'B737', 'B738', 'B763', 'B789'],
   HO: ['A320', 'A20N', 'A321', 'A21N', 'B789'],
-  JL: ['A359', 'A35K', 'B738', 'B763', 'B772', 'B77W', 'B788', 'B789'],
+  JL: ['A359', 'A35K', 'AT46', 'AT76', 'B738', 'B763', 'B772', 'B77W', 'B788', 'B789', 'D228', 'E170', 'E190'],
   JT: ['A333', 'B738', 'B739', 'B38M', 'B39M'],
-  JX: ['A21N', 'A339', 'A359'],
+  JX: ['A21N', 'A339', 'A359', 'A35K'],
   KN: ['B738', 'B38M', 'C909'],
-  MH: ['A332', 'A333', 'A359', 'B738', 'B744', 'B772'],
+  MH: ['A332', 'A333', 'A339', 'A359', 'B38M', 'B738', 'B744', 'B772'],
   MM: ['A20N', 'A21N'],
-  MU: ['A306', 'A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B737', 'B738', 'B789', 'B77W', 'C919'],
-  NH: ['A20N', 'A321', 'A21N', 'A388', 'B738', 'B763', 'B772', 'B77W', 'B788', 'B789', 'B78X'],
-  OS: ['A320', 'A20N', 'A321', 'B763', 'B772', 'B789'],
+  MU: ['A306', 'A319', 'A320', 'A20N', 'A321', 'A21N', 'A332', 'A333', 'A359', 'B737', 'B738', 'B38M', 'B789', 'B77W', 'C909', 'C919'],
+  NH: ['A20N', 'A321', 'A21N', 'A388', 'B738', 'B763', 'B772', 'B773', 'B77L', 'B77W', 'B788', 'B789', 'B78X', 'DH8D'],
+  OS: ['A320', 'A20N', 'A321', 'B763', 'B772', 'B789', 'BCS3', 'E190', 'E195'],
   SC: ['B738', 'B38M'],
-  SQ: ['A359', 'A388', 'B738', 'B77W', 'B788', 'B789', 'B78X'],
+  SQ: ['A359', 'A388', 'B38M', 'B738', 'B744', 'B77L', 'B77W', 'B788', 'B789', 'B78X'],
   U2: ['A319', 'A320', 'A20N', 'A321', 'A21N'],
   UA: ['A319', 'A320', 'A21N', 'B737', 'B738', 'B739', 'B38M', 'B39M', 'B752', 'B753', 'B763', 'B772', 'B77W', 'B788', 'B789', 'B78X', 'E75W'],
-  VA: ['B737', 'B738', 'B38M'],
+  VA: ['B737', 'B738', 'B38M', 'B77W', 'E170', 'E190', 'E290', 'F100', 'F70', 'SF34'],
   WN: ['B737', 'B738', 'B38M'],
-  XE: ['AT46', 'E75W'],
+  XE: ['AT46', 'E135', 'E145', 'E75W'],
 };
 
 export const specialLiveryCatalog: Record<string, SpecialLiveryReference[]> = {
@@ -67,6 +67,8 @@ export const specialLiveryCatalog: Record<string, SpecialLiveryReference[]> = {
 
 export const canonicalAircraftType: Record<string, string> = {
   A32N: 'A20N',
+  AJ27: 'C909',
+  B712: 'B717',
   B7M8: 'B38M',
 };
 

@@ -10,12 +10,18 @@ Regenerate the deterministic demo dataset with:
 node scripts/generate-synthetic-demo-data.mjs
 ```
 
+Refresh the observed fleet snapshot with:
+
+```bash
+node scripts/update-airline-fleet-catalog.mjs
+```
+
 ## Features
 
 - Animated great-circle flights on a draggable globe
 - Timeline playback, route history, filters and speed controls
 - Statistics for years, distance, airports, countries, airlines and aircraft
-- Airline passport collections for fleet types, individual registrations and curated special liveries
+- Airline passport collections with observed fleet rosters, collected registrations, per-aircraft journey history and curated special liveries
 - Milestone-flight sequences for every final digit from 0 through 9
 - Searchable logbook with CSV and normalized JSON export
 - Browser import for `.xlsx`, `.xls`, `.csv` and `.json`
@@ -100,5 +106,9 @@ npm run build
 ## Data and license
 
 Airport coordinates and names come from [OurAirports](https://ourairports.com/data/) and are released into the public domain by that project. Sheet import uses [SheetJS Community Edition](https://docs.sheetjs.com/).
+
+The aircraft-registration reference in `app/data/airline-fleet-catalog.json` is an observed snapshot derived through [PlaneQuery](https://www.planequery.com/) from [ADSB.lol](https://www.adsb.lol/) data under the Open Database License 1.0. It is not an official or complete live airline fleet list. The generated database snapshot remains subject to ODbL 1.0 and is not relicensed under MIT.
+
+Selected fleet types can carry verified overrides in the refresh script. China Eastern A350-900 and Boeing 777-300ER totals are checked against the airline's July 2026 operating disclosure, with individual registrations checked against PlaneFinder. Verified overrides replace the short-window ADS-B roster for those types while preserving historic registrations from an imported logbook.
 
 Flight Atlas source code is available under the [MIT License](LICENSE).
