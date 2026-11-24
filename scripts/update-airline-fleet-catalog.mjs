@@ -60,6 +60,20 @@ const typeAliases = {
 // Counts are checked against the airline disclosure; registrations are checked
 // against the linked fleet directory on the verification date.
 const verifiedFleetOverrides = {
+  FM: {
+    verifiedAt: '2026-11-24',
+    countSource: {
+      name: 'PlaneFinder · Shanghai Airlines current fleet',
+      url: 'https://planefinder.net/data/airline/CSH/fleet',
+    },
+    rosterSource: {
+      name: 'PlaneFinder · Shanghai Airlines current fleet',
+      url: 'https://planefinder.net/data/airline/CSH/fleet',
+    },
+    allowedTypes: ['B737', 'B738', 'B38M', 'B789'],
+    expectedCounts: { B737: 5, B738: 59, B38M: 17, B789: 10 },
+    additions: { B737: ['B-2913'] },
+  },
   MU: {
     verifiedAt: '2026-11-24',
     countSource: {
@@ -89,12 +103,25 @@ function applyVerifiedOverrides(payload) {
   payload.verifiedAirlines = {};
   for (const [airline, verification] of Object.entries(verifiedFleetOverrides)) {
     if (!payload.airlines[airline]) continue;
-    for (const [type, registrations] of Object.entries(verification.types)) {
+    if (verification.allowedTypes) {
+      payload.airlines[airline].types = Object.fromEntries(
+        Object.entries(payload.airlines[airline].types)
+          .filter(([type]) => verification.allowedTypes.includes(type)),
+      );
+    }
+    for (const [type, registrations] of Object.entries(verification.additions ?? {})) {
+      payload.airlines[airline].types[type] = [
+        ...new Set([...(payload.airlines[airline].types[type] ?? []), ...registrations]),
+      ].sort();
+    }
+    for (const [type, registrations] of Object.entries(verification.types ?? {})) {
       payload.airlines[airline].types[type] = [...registrations].sort();
     }
     payload.verifiedAirlines[airline] = {
       verifiedAt: verification.verifiedAt,
-      types: Object.fromEntries(Object.entries(verification.types).map(([type, registrations]) => [type, registrations.length])),
+      types: verification.expectedCounts ?? Object.fromEntries(
+        Object.entries(verification.types ?? {}).map(([type, registrations]) => [type, registrations.length]),
+      ),
       countSource: verification.countSource,
       rosterSource: verification.rosterSource,
     };

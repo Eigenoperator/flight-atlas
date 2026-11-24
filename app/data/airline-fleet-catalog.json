@@ -4743,22 +4743,6 @@
     "FM": {
       "callsignPrefix": "CSH",
       "types": {
-        "A20N": [
-          "B-32RP"
-        ],
-        "A321": [
-          "B-8976"
-        ],
-        "A332": [
-          "B-6543"
-        ],
-        "A333": [
-          "B-304A",
-          "B-6085",
-          "B-6096",
-          "B-6506",
-          "B-6507"
-        ],
         "B38M": [
           "B-1149",
           "B-1150",
@@ -4779,6 +4763,7 @@
           "B-226G"
         ],
         "B737": [
+          "B-2913",
           "B-5260",
           "B-5261",
           "B-5269",
@@ -9159,6 +9144,23 @@
     }
   },
   "verifiedAirlines": {
+    "FM": {
+      "verifiedAt": "2026-11-24",
+      "types": {
+        "B737": 5,
+        "B738": 59,
+        "B38M": 17,
+        "B789": 10
+      },
+      "countSource": {
+        "name": "PlaneFinder · Shanghai Airlines current fleet",
+        "url": "https://planefinder.net/data/airline/CSH/fleet"
+      },
+      "rosterSource": {
+        "name": "PlaneFinder · Shanghai Airlines current fleet",
+        "url": "https://planefinder.net/data/airline/CSH/fleet"
+      }
+    },
     "MU": {
       "verifiedAt": "2026-11-24",
       "types": {

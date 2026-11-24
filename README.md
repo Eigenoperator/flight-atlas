@@ -109,6 +109,6 @@ Airport coordinates and names come from [OurAirports](https://ourairports.com/da
 
 The aircraft-registration reference in `app/data/airline-fleet-catalog.json` is an observed snapshot derived through [PlaneQuery](https://www.planequery.com/) from [ADSB.lol](https://www.adsb.lol/) data under the Open Database License 1.0. It is not an official or complete live airline fleet list. The generated database snapshot remains subject to ODbL 1.0 and is not relicensed under MIT.
 
-Selected fleet types can carry verified overrides in the refresh script. China Eastern A350-900 and Boeing 777-300ER totals are checked against the airline's July 2026 operating disclosure, with individual registrations checked against PlaneFinder. Verified overrides replace the short-window ADS-B roster for those types while preserving historic registrations from an imported logbook.
+Selected fleet types can carry verified overrides in the refresh script. China Eastern A350-900 and Boeing 777-300ER totals are checked against the airline's July 2026 operating disclosure, with individual registrations checked against PlaneFinder. Shanghai Airlines is restricted to its four current Boeing fleet types and verified PlaneFinder roster. Verified overrides replace the short-window ADS-B roster, and retired or historic-only registrations from an imported logbook do not re-enter current-fleet progress.
 
 Flight Atlas source code is available under the [MIT License](LICENSE).

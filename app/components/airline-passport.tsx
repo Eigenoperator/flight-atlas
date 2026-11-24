@@ -107,8 +107,6 @@ export function AirlinePassport({
     () => fleetCatalog.airlines[selectedCode]?.types ?? {},
     [selectedCode],
   );
-  const loggedTypes = selectedCollection?.types ?? new Set<string>();
-  const collectedReferenceTypes = referenceTypes.filter((code) => loggedTypes.has(code));
   const registrationCoverage = selectedFlights.filter((flight) => flight.registration).length;
   const distance = selectedFlights.reduce((sum, flight) => sum + flight.distanceKm, 0);
   const routes = new Set(selectedFlights.map((flight) => [flight.origin, flight.destination].sort().join('–')));
@@ -123,11 +121,13 @@ export function AirlinePassport({
       flightsByTypeAndRegistration.set(type, typeFlights);
     });
 
-    const typeCodes = [...new Set([...referenceTypes, ...flightsByTypeAndRegistration.keys()])];
+    const typeCodes = referenceTypes.length ? referenceTypes : [...flightsByTypeAndRegistration.keys()];
     const roster = new Map<string, AirframeRow[]>();
     typeCodes.forEach((type) => {
       const logged = flightsByTypeAndRegistration.get(type) ?? new Map<string, Flight[]>();
-      const registrations = [...new Set([...(observedTypes[type] ?? []), ...logged.keys()])];
+      const registrations = referenceTypes.length
+        ? [...new Set(observedTypes[type] ?? [])]
+        : [...logged.keys()];
       roster.set(type, registrations
         .map((registration) => {
           const registrationFlights = logged.get(registration) ?? [];
@@ -150,14 +150,19 @@ export function AirlinePassport({
       const type = passportAircraftType(flight.aircraft);
       byType.set(type, [...(byType.get(type) ?? []), flight]);
     });
-    const codes = [...new Set([...referenceTypes, ...byType.keys()])];
+    const codes = (referenceTypes.length ? referenceTypes : [...byType.keys()])
+      .filter((code) => (airframesByType.get(code)?.length ?? 0) > 0);
     return codes
       .map((code) => {
         const typeFlights = byType.get(code) ?? [];
         const roster = airframesByType.get(code) ?? [];
+        const currentRegistrations = new Set(roster.map((airframe) => airframe.registration));
+        const currentFlights = typeFlights.filter(
+          (flight) => flight.registration && currentRegistrations.has(flight.registration),
+        );
         return {
           code,
-          flights: typeFlights,
+          flights: currentFlights,
           roster,
           collected: roster.filter((airframe) => airframe.collected).length,
           inReference: referenceTypes.includes(code),
@@ -180,6 +185,7 @@ export function AirlinePassport({
     (sum, roster) => sum + roster.filter((airframe) => airframe.collected).length,
     0,
   );
+  const collectedCurrentTypes = typeRows.filter((row) => row.collected > 0).length;
 
   const liveryReferences = specialLiveryCatalog[selectedCode] ?? [];
   const verifiedFleet = fleetCatalog.verifiedAirlines?.[selectedCode];
@@ -273,7 +279,7 @@ export function AirlinePassport({
         </header>
         <div className="airline-passport-kpis">
           <div><span>Flights</span><strong>{selectedFlights.length}</strong><small>{formatNumber(distance)} km</small></div>
-          <div><span>Aircraft types</span><strong>{loggedTypes.size}</strong><small>{referenceTypes.length ? `${collectedReferenceTypes.length} of ${referenceTypes.length} in type catalogue` : 'No type reference'}</small></div>
+          <div><span>Current aircraft types</span><strong>{collectedCurrentTypes}</strong><small>{`${collectedCurrentTypes} of ${typeRows.length} active types flown`}</small></div>
           <div><span>Individual aircraft</span><strong>{collectedAirframes}</strong><small>{totalRoster ? `${collectedAirframes} of ${totalRoster} observed or logged` : `${registrationCoverage} identified flights`}</small></div>
           <div><span>Special liveries</span><strong>{collectedLiveries.length}</strong><small>{liveryReferences.length ? `${collectedLiveries.length} of ${liveryReferences.length} known liveries` : 'No livery reference yet'}</small></div>
           <div><span>Routes</span><strong>{routes.size}</strong><small>{firstFlight ? `${firstFlight.origin}—${firstFlight.destination} first` : '—'}</small></div>
@@ -281,7 +287,7 @@ export function AirlinePassport({
       </section>
 
       <div className="airline-passport-tabs" role="tablist" aria-label="Airline passport detail">
-        <button type="button" role="tab" aria-selected={activeTab === 'types'} className={activeTab === 'types' ? 'is-active' : ''} onClick={() => setActiveTab('types')}>Aircraft types <span>{loggedTypes.size}/{typeRows.length}</span></button>
+        <button type="button" role="tab" aria-selected={activeTab === 'types'} className={activeTab === 'types' ? 'is-active' : ''} onClick={() => setActiveTab('types')}>Aircraft types <span>{collectedCurrentTypes}/{typeRows.length}</span></button>
         <button type="button" role="tab" aria-selected={activeTab === 'airframes'} className={activeTab === 'airframes' ? 'is-active' : ''} onClick={() => setActiveTab('airframes')}>Individual aircraft <span>{collectedAirframes}/{totalRoster || '—'}</span></button>
         <button type="button" role="tab" aria-selected={activeTab === 'liveries'} className={activeTab === 'liveries' ? 'is-active' : ''} onClick={() => setActiveTab('liveries')}>Special liveries <span>{collectedLiveries.length}/{liveryReferences.length || '—'}</span></button>
       </div>
@@ -292,14 +298,14 @@ export function AirlinePassport({
             <button
               type="button"
               key={row.code}
-              className={row.flights.length ? 'is-collected' : 'is-missing'}
+              className={row.collected ? 'is-collected' : 'is-missing'}
               onClick={() => openTypeRoster(row.code)}
             >
-              <div><strong>{row.code}</strong><span>{row.flights.length ? 'Collected' : 'Not yet'}</span></div>
+              <div><strong>{row.code}</strong><span>{row.collected ? 'Collected' : 'Not yet'}</span></div>
               <h5>{aircraftNames[row.code] ?? row.code}</h5>
               <p>{row.flights.length} {row.flights.length === 1 ? 'flight' : 'flights'} · {row.collected}/{row.roster.length || '—'} aircraft flown</p>
               <i><b style={{ width: `${percentage(row.collected, row.roster.length)}%` }} /></i>
-              {!row.inReference && row.flights.length > 0 && <small>Historic logbook type</small>}
+              {!row.inReference && row.collected > 0 && <small>Unverified current type</small>}
             </button>
           ))}
         </div>
@@ -430,7 +436,7 @@ export function AirlinePassport({
           <a href={verifiedFleet.rosterSource.url} target="_blank" rel="noreferrer">registration roster</a>, checked {formatReferenceDate(verifiedFleet.verifiedAt)}.{' '}
         </> : null}
         Other types use an observed-fleet fallback from {formatReferenceDate(fleetCatalog.observedFrom)} — {formatReferenceDate(fleetCatalog.observedTo)} via{' '}
-        <a href={fleetCatalog.source.url} target="_blank" rel="noreferrer">{fleetCatalog.source.name}</a> ({fleetCatalog.source.license}). Logged historic aircraft are always added; unverified types are not presented as an official complete fleet.
+        <a href={fleetCatalog.source.url} target="_blank" rel="noreferrer">{fleetCatalog.source.name}</a> ({fleetCatalog.source.license}). Retired and historic-only aircraft are excluded from current-fleet progress; unverified types are not presented as an official complete fleet.
       </p>
     </article>
   );
