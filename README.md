@@ -2,7 +2,7 @@
 
 Flight Atlas turns a personal flight log into an animated, rotatable route globe and a set of static travel statistics. It is local-first, uses English labels and metric units, and includes an import API for reusable integrations.
 
-The repository contains only an anonymous, synthetic demo logbook. Its fictional traveller was born in 1980, grew up in Chengdu and Shanghai, studied in Beijing and Boston, and later worked in travel-heavy consulting, regional operations and global partnerships roles based in Shanghai, Singapore and San Francisco. The resulting 1,000-flight career arc is intentionally plausible but does not describe a real person. Imported files are processed in the browser and are never uploaded by the app.
+The repository contains only an anonymous, synthetic demo logbook. Its fictional traveller was born in Shanghai in 2004, attended international school in Singapore from 2017 to 2019, returned to Shanghai in 2020, and moved to Los Angeles for university in 2022. The 100-flight history covers parent-accompanied childhood travel, term journeys, annual trips home, internships, academic events and holidays. It does not describe a real person or reuse a private flight log. Imported files are processed in the browser and are never uploaded by the app.
 
 Regenerate the deterministic demo dataset with:
 

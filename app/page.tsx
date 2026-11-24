@@ -622,9 +622,9 @@ function FlightAtlasExperience() {
           </p>
           {dataSource === 'Demo logbook' && (
             <p className="hero-demo-note">
-              Fictional demo persona: born in 1980, raised in Chengdu and Shanghai, educated in Beijing and Boston,
-              then based in Shanghai, Singapore and San Francisco through a travel-heavy career in consulting,
-              regional operations and global partnerships. All 1,000 flights are synthetic.
+              Fictional demo persona: born in Shanghai in 2004, attended international school in Singapore,
+              returned to Shanghai in 2020, and moved to Los Angeles for university in 2022. The 100 flights
+              cover family visits, school travel, internships, academic events and holidays. Every record is synthetic.
             </p>
           )}
         </div>

@@ -5,142 +5,92 @@ const airportDirectoryUrl = new URL('../app/data/airports-global.json', import.m
 const demoOutputUrl = new URL('../app/data/demo-flight-data.json', import.meta.url);
 
 const yearCounts = new Map([
-  [1984, 2], [1985, 0], [1986, 2], [1987, 0], [1988, 2], [1989, 2],
-  [1990, 2], [1991, 2], [1992, 2], [1993, 2], [1994, 2], [1995, 2], [1996, 2], [1997, 4],
-  [1998, 10], [1999, 10], [2000, 12], [2001, 12],
-  [2002, 14], [2003, 16],
-  [2004, 52], [2005, 54], [2006, 54], [2007, 56], [2008, 56], [2009, 58],
-  [2010, 44], [2011, 44], [2012, 44], [2013, 44], [2014, 44], [2015, 44],
-  [2016, 44], [2017, 46], [2018, 46], [2019, 44],
-  [2020, 6], [2021, 12], [2022, 22], [2023, 26], [2024, 24], [2025, 22], [2026, 14],
+  [2008, 2], [2009, 0], [2010, 2], [2011, 2], [2012, 2], [2013, 2],
+  [2014, 4], [2015, 4], [2016, 4],
+  [2017, 8], [2018, 8], [2019, 8],
+  [2020, 2], [2021, 4],
+  [2022, 8], [2023, 10], [2024, 12], [2025, 10], [2026, 8],
 ]);
 
 export const lifeStages = [
   {
-    from: 1984,
-    to: 1987,
-    period: '1984–1987',
-    ages: '4–7',
-    base: 'Chengdu',
-    baseAirport: 'CTU',
-    lifeStage: 'Childhood in Chengdu',
-    reason: 'Family visits to grandparents in Shanghai. Every flight was taken with a parent.',
-    destinations: ['SHA'],
-    purposes: [['Family visit', 1]],
-  },
-  {
-    from: 1988,
-    to: 1997,
-    period: '1988–1997',
-    ages: '8–17',
+    from: 2008,
+    to: 2013,
+    period: '2008–2013',
+    ages: '4–9',
     base: 'Shanghai',
     baseAirport: 'SHA',
-    lifeStage: 'School years in Shanghai',
-    reason: 'The family moved to Shanghai. Flights were mainly school-holiday visits to relatives and a few family trips.',
-    destinations: ['CTU', 'PEK', 'TAO', 'CAN'],
-    purposes: [['Family visit', 0.7], ['School holiday', 0.3]],
+    lifeStage: 'Childhood in Shanghai',
+    reason: 'Parent-accompanied visits to relatives and one family holiday most years.',
+    destinations: ['CTU', 'PEK', 'HKG', 'KIX'],
+    purposes: [['Family visit', 0.65], ['Leisure', 0.35]],
   },
   {
-    from: 1998,
-    to: 2001,
-    period: '1998–2001',
-    ages: '18–21',
-    base: 'Beijing',
-    baseAirport: 'PEK',
-    lifeStage: 'University in Beijing',
-    reason: 'Term travel to Shanghai, internships in southern China and occasional student trips.',
-    destinations: ['SHA', 'CTU', 'CAN', 'SZX', 'HKG', 'TAO', 'XIY'],
-    purposes: [['University travel', 0.45], ['Family visit', 0.3], ['Internship', 0.15], ['Leisure', 0.1]],
-  },
-  {
-    from: 2002,
-    to: 2003,
-    period: '2002–2003',
-    ages: '22–23',
-    base: 'Boston',
-    baseAirport: 'BOS',
-    lifeStage: 'Graduate school in Boston',
-    reason: 'Study abroad, annual trips home via New York and Tokyo, academic conferences and job interviews.',
-    destinations: ['JFK', 'ORD', 'SFO', 'LAX', 'IAD'],
-    purposes: [['Academic conference', 0.35], ['Job interview', 0.3], ['Family visit', 0.2], ['Leisure', 0.15]],
-  },
-  {
-    from: 2004,
-    to: 2009,
-    period: '2004–2009',
-    ages: '24–29',
+    from: 2014,
+    to: 2016,
+    period: '2014–2016',
+    ages: '10–12',
     base: 'Shanghai',
-    baseAirport: 'PVG',
-    lifeStage: 'Management consulting in Shanghai',
-    reason: 'Frequent client work across China and East Asia, plus firm training and a small amount of personal travel.',
-    destinations: ['PEK', 'CAN', 'SZX', 'HKG', 'NRT', 'KIX', 'ICN', 'SIN', 'TAO', 'XMN', 'CTU', 'WUH'],
-    purposes: [['Client work', 0.72], ['Firm training', 0.12], ['Family visit', 0.08], ['Leisure', 0.08]],
+    baseAirport: 'SHA',
+    lifeStage: 'Primary school in Shanghai',
+    reason: 'School-holiday family visits, short trips in East Asia and an occasional school exchange.',
+    destinations: ['CTU', 'PEK', 'HKG', 'KIX', 'TPE'],
+    purposes: [['Family visit', 0.4], ['School holiday', 0.35], ['School trip', 0.25]],
   },
   {
-    from: 2010,
-    to: 2015,
-    period: '2010–2015',
-    ages: '30–35',
+    from: 2017,
+    to: 2019,
+    period: '2017–2019',
+    ages: '13–15',
     base: 'Singapore',
     baseAirport: 'SIN',
-    lifeStage: 'Regional operations in Singapore',
-    reason: 'Asia-Pacific site launches, partner reviews, training, conferences and regular visits home.',
-    destinations: ['HKG', 'PVG', 'PEK', 'NRT', 'HND', 'KIX', 'BKK', 'KUL', 'CGK', 'MNL', 'SYD', 'MEL', 'BOM', 'DEL'],
-    purposes: [['Regional operations', 0.62], ['Partner meeting', 0.15], ['Conference', 0.1], ['Family visit', 0.08], ['Leisure', 0.05]],
-  },
-  {
-    from: 2016,
-    to: 2019,
-    period: '2016–2019',
-    ages: '36–39',
-    base: 'San Francisco',
-    baseAirport: 'SFO',
-    lifeStage: 'Global partnerships in San Francisco',
-    reason: 'US technology hubs, Asia partner visits, industry conferences and family trips to Shanghai.',
-    destinations: ['LAX', 'SEA', 'ORD', 'JFK', 'AUS', 'BOS', 'LAS', 'PVG', 'NRT', 'HND', 'SIN', 'LHR'],
-    purposes: [['Business development', 0.56], ['Partner meeting', 0.16], ['Conference', 0.12], ['Family visit', 0.1], ['Leisure', 0.06]],
+    lifeStage: 'International school in Singapore',
+    reason: 'Term travel home to Shanghai, school activities and family holidays around Asia-Pacific.',
+    destinations: ['PVG', 'HKG', 'KUL', 'BKK', 'NRT', 'SYD'],
+    purposes: [['Family visit', 0.4], ['School travel', 0.35], ['Leisure', 0.25]],
   },
   {
     from: 2020,
     to: 2020,
     period: '2020',
-    ages: '40',
-    base: 'San Francisco to Shanghai',
-    baseAirport: 'SHA',
-    lifeStage: 'Repatriation to Shanghai',
-    reason: 'One return journey to Shanghai, followed by only essential domestic travel.',
-    destinations: ['CTU', 'PEK'],
-    purposes: [['Repatriation', 0.34], ['Family visit', 0.33], ['Essential work', 0.33]],
+    ages: '16',
+    base: 'Singapore to Shanghai',
+    baseAirport: 'PVG',
+    lifeStage: 'Return to Shanghai',
+    reason: 'A two-sector relocation journey via Tokyo before international travel became heavily restricted.',
+    destinations: ['NRT'],
+    purposes: [['Repatriation', 1]],
   },
   {
     from: 2021,
     to: 2021,
     period: '2021',
-    ages: '41',
+    ages: '17',
     base: 'Shanghai',
     baseAirport: 'SHA',
-    lifeStage: 'Hybrid work in Shanghai',
-    reason: 'Limited domestic meetings, family visits and short breaks while international travel remained constrained.',
-    destinations: ['PEK', 'CTU', 'CAN', 'SZX', 'HKG', 'XIY'],
-    purposes: [['Essential work', 0.45], ['Family visit', 0.35], ['Leisure', 0.2]],
+    lifeStage: 'High school completion in Shanghai',
+    reason: 'Two domestic round trips for family visits and university preparation.',
+    destinations: ['CTU', 'PEK'],
+    purposes: [['University preparation', 0.55], ['Family visit', 0.45]],
   },
   {
     from: 2022,
     to: 2026,
     period: '2022–2026',
-    ages: '42–46',
-    base: 'Shanghai',
-    baseAirport: 'PVG',
-    lifeStage: 'Independent adviser in Shanghai',
-    reason: 'Board and advisory work, family visits and longer personal trips. Travel gradually declines by 2026.',
-    destinations: ['HND', 'KIX', 'SIN', 'HKG', 'PEK', 'CTU', 'LAX', 'SFO', 'CDG', 'LHR', 'SYD', 'BKK'],
-    purposes: [['Advisory work', 0.42], ['Board meeting', 0.16], ['Family visit', 0.14], ['Leisure', 0.28]],
+    ages: '18–22',
+    base: 'Los Angeles',
+    baseAirport: 'LAX',
+    lifeStage: 'University in Los Angeles',
+    reason: 'Annual trips home via Tokyo, US travel, internships, academic events and personal holidays.',
+    destinations: ['SFO', 'SEA', 'JFK', 'BOS', 'LAS', 'HNL', 'NRT', 'PVG'],
+    purposes: [['University travel', 0.3], ['Family visit', 0.25], ['Internship', 0.2], ['Academic conference', 0.1], ['Leisure', 0.15]],
   },
 ];
 
 const chinaAirports = new Set(['SHA', 'PVG', 'PEK', 'CTU', 'CAN', 'SZX', 'TAO', 'XIY', 'WUH', 'XMN', 'CKG', 'KMG', 'HAK', 'HGH', 'NKG']);
 const japanAirports = new Set(['NRT', 'HND', 'KIX', 'ITM', 'NGO', 'FUK']);
 const koreaAirports = new Set(['ICN', 'GMP']);
+const taiwanAirports = new Set(['TPE', 'TSA', 'KHH']);
 const usAirports = new Set(['BOS', 'JFK', 'EWR', 'ORD', 'SFO', 'LAX', 'SEA', 'AUS', 'ATL', 'DTW', 'IAD', 'MIA', 'LAS', 'PDX', 'SAN']);
 const australiaAirports = new Set(['SYD', 'MEL', 'BNE']);
 const europeAirports = new Set(['LHR', 'CDG', 'FRA', 'AMS', 'VIE', 'FCO', 'MAD']);
@@ -233,6 +183,7 @@ function chooseAirline(origin, destination, year, random) {
   }
   if (japanAirports.has(origin) && japanAirports.has(destination)) return choose(['JL', 'NH'], random);
   if ((chinaAirports.has(origin) && destination === 'HKG') || (origin === 'HKG' && chinaAirports.has(destination))) return choose(['CX', 'MU', 'CA'], random);
+  if ((chinaAirports.has(origin) && taiwanAirports.has(destination)) || (taiwanAirports.has(origin) && chinaAirports.has(destination))) return choose(['CI', 'MU', 'CA'], random);
   if ((chinaAirports.has(origin) && japanAirports.has(destination)) || (japanAirports.has(origin) && chinaAirports.has(destination))) return choose(['JL', 'NH', 'MU', 'CA'], random);
   if ((chinaAirports.has(origin) && koreaAirports.has(destination)) || (koreaAirports.has(origin) && chinaAirports.has(destination))) return choose(['MU', 'CA', 'CZ'], random);
   if ((chinaAirports.has(origin) && usAirports.has(destination)) || (usAirports.has(origin) && chinaAirports.has(destination))) return choose(['UA', 'MU', 'CA'], random);
@@ -242,7 +193,7 @@ function chooseAirline(origin, destination, year, random) {
     return origin === 'LHR' || destination === 'LHR' ? choose(['BA', 'CA', 'MU'], random) : choose(['CA', 'MU'], random);
   }
   if (origin === 'SIN' || destination === 'SIN') {
-    if (australiaAirports.has(origin) || australiaAirports.has(destination)) return choose(['SQ', 'VA'], random);
+    if (australiaAirports.has(origin) || australiaAirports.has(destination)) return 'SQ';
     if (origin === 'KUL' || destination === 'KUL') return choose(['SQ', 'MH'], random);
     if (origin === 'HKG' || destination === 'HKG') return choose(['SQ', 'CX'], random);
     if (japanAirports.has(origin) || japanAirports.has(destination)) return choose(['SQ', 'JL', 'NH'], random);
@@ -282,8 +233,11 @@ function chooseAircraft(airline, year, distanceKm, random) {
   if (year < 2006) return choose(longHaul ? ['B744', 'B772', 'A332'] : mediumHaul ? ['B763', 'A321'] : ['A320', 'A321', 'B738'], random);
   if (year < 2016) return choose(longHaul ? ['A332', 'A333', 'B77W'] : mediumHaul ? ['A332', 'B763'] : ['A320', 'A321', 'B738'], random);
   if (longHaul) return choose(['A359', 'B77W', 'B789', 'A333'], random);
-  if (mediumHaul) return choose(['A333', 'B789', 'A21N'], random);
-  const modernShortHaul = year >= 2024 ? ['A20N', 'A21N', 'B738', 'B38M', 'C919'] : ['A20N', 'A21N', 'B738', 'B38M'];
+  if (mediumHaul) return choose(year >= 2018 ? ['A333', 'B789', 'A21N'] : ['A333'], random);
+  const modernShortHaul = year >= 2024 ? ['A20N', 'A21N', 'B738', 'B38M', 'C919']
+    : year >= 2018 ? ['A20N', 'A21N', 'B738', 'B38M']
+      : year >= 2017 ? ['A20N', 'B738']
+        : ['A320', 'A321', 'B738'];
   return choose(modernShortHaul, random);
 }
 
@@ -298,7 +252,7 @@ function letters(seed, count) {
 }
 
 function registrationFor(airline, seed) {
-  if (['MU', 'FM', 'CA', 'CZ', '3U'].includes(airline)) return `B-${String(1000 + seed % 9000)}`;
+  if (['MU', 'FM', 'CA', 'CZ', '3U', 'CI'].includes(airline)) return `B-${String(1000 + seed % 9000)}`;
   if (['UA', 'AA', 'DL', 'AS', 'WN'].includes(airline)) return `N${String(100 + seed % 900)}${letters(seed, 2)}`;
   if (airline === 'JL') return `JA${String(100 + seed % 900)}J`;
   if (airline === 'NH') return `JA${String(100 + seed % 900)}A`;
@@ -323,10 +277,17 @@ function flightNumberFor(airline, origin, destination, date, legIndex) {
 }
 
 function tripContext(purpose, destination, airportLookup) {
-  const city = airportLookup[destination].city.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
+  const cityAliases = {
+    KUL: 'Kuala Lumpur', NRT: 'Tokyo', HND: 'Tokyo', PVG: 'Shanghai', SHA: 'Shanghai', TPE: 'Taipei',
+  };
+  const city = cityAliases[destination]
+    ?? airportLookup[destination].city.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim();
   const contexts = {
     'Family visit': `Visit family in ${city}`,
     'School holiday': `School-holiday trip to ${city}`,
+    'School trip': `School exchange in ${city}`,
+    'School travel': `School activity in ${city}`,
+    'University preparation': `University preparation visit in ${city}`,
     'University travel': `Travel between university and home via ${city}`,
     Internship: `Student internship in ${city}`,
     Leisure: `Personal trip to ${city}`,
@@ -352,7 +313,7 @@ export async function generateSyntheticLife() {
     ...airport,
     city: airport.city.replace(/\s*[（(][^）)]*[）)]\s*$/, '').trim(),
   }]));
-  const random = mulberry32(19801000);
+  const random = mulberry32(20040100);
   const flights = [];
   const airframes = new Map();
   let tripSequence = 0;
@@ -465,41 +426,59 @@ export async function generateSyntheticLife() {
   for (const [year, count] of yearCounts) {
     if (count === 0) continue;
     const stage = stageForYear(year);
-    if (year === 2002 || year === 2003) {
-      const startDate = dateFromDay(year, year === 2002 ? 153 : 160);
+    if (year >= 2017 && year <= 2019) {
       addItinerary({
         stage,
         purpose: 'Family visit',
-        airports: ['BOS', 'JFK', 'NRT', 'PVG', 'NRT', 'JFK', 'BOS'],
-        dates: [startDate, startDate, addDays(startDate, 1), addDays(startDate, 15), addDays(startDate, 16), addDays(startDate, 16)],
-        context: 'Annual trip home to Shanghai via New York and Tokyo',
+        airports: ['SIN', 'PVG', 'SIN'],
+        dates: [dateFromDay(year, 165), dateFromDay(year, 205)],
+        context: 'Summer break at home in Shanghai',
       });
-      const startDays = year === 2002 ? [35, 85, 230, 300] : [30, 75, 115, 230, 300];
-      addRoundTrips(year, stage, count - 6, startDays);
+      addRoundTrips(year, stage, count - 2, [35, 110, 285]);
       continue;
     }
     if (year === 2020) {
       addItinerary({
         stage,
         purpose: 'Repatriation',
-        airports: ['SFO', 'HND', 'PVG'],
-        dates: [dateFromDay(2020, 25), dateFromDay(2020, 26)],
-        context: 'Relocation from San Francisco to Shanghai via Tokyo',
+        airports: ['SIN', 'NRT', 'PVG'],
+        dates: [dateFromDay(2020, 24), dateFromDay(2020, 25)],
+        context: 'Return from Singapore to Shanghai via Tokyo',
       });
+      continue;
+    }
+    if (year === 2022) {
+      addItinerary({
+        stage,
+        purpose: 'University travel',
+        airports: ['PVG', 'NRT', 'LAX'],
+        dates: [dateFromDay(2022, 230), dateFromDay(2022, 231)],
+        context: 'Move from Shanghai to Los Angeles for university via Tokyo',
+      });
+      addRoundTrips(year, stage, count - 2, [255, 295, 335]);
+      continue;
+    }
+    if (year >= 2023) {
       addItinerary({
         stage,
         purpose: 'Family visit',
-        airports: ['SHA', 'CTU', 'SHA'],
-        dates: [dateFromDay(2020, 190), dateFromDay(2020, 197)],
-        context: 'Visit family in Chengdu after returning to China',
+        airports: ['LAX', 'NRT', 'PVG', 'NRT', 'LAX'],
+        dates: [dateFromDay(year, 150), dateFromDay(year, 151), dateFromDay(year, 195), dateFromDay(year, 196)],
+        context: 'Summer break at home in Shanghai via Tokyo',
       });
-      addItinerary({
-        stage,
-        purpose: 'Essential work',
-        airports: ['SHA', 'PEK', 'SHA'],
-        dates: [dateFromDay(2020, 294), dateFromDay(2020, 297)],
-        context: 'Essential work meeting in Beijing',
-      });
+      if (year === 2024) {
+        addItinerary({
+          stage,
+          purpose: 'Academic conference',
+          airports: ['LAX', 'BOS', 'LAX'],
+          dates: [dateFromDay(2024, 90), dateFromDay(2024, 95)],
+          context: 'Student conference in Boston',
+        });
+      }
+      const otherTripDays = year === 2024 ? [30, 245, 320]
+        : year === 2026 ? [55, 275]
+          : [35, 255, 325];
+      addRoundTrips(year, stage, count - (year === 2024 ? 6 : 4), otherTripDays);
       continue;
     }
     addRoundTrips(year, stage, count);
@@ -507,7 +486,7 @@ export async function generateSyntheticLife() {
 
   flights.sort((left, right) => `${left.date}${left.departureTime}`.localeCompare(`${right.date}${right.departureTime}`));
   flights.forEach((flight, index) => { flight.id = index + 1; });
-  if (flights.length !== 1_000) throw new Error(`Expected 1000 flights, generated ${flights.length}`);
+  if (flights.length !== 100) throw new Error(`Expected 100 flights, generated ${flights.length}`);
 
   const usedAirportCodes = [...new Set(flights.flatMap((flight) => [flight.origin, flight.destination]))].sort();
   const dataset = {
