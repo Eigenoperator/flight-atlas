@@ -15,6 +15,8 @@ node scripts/generate-synthetic-demo-data.mjs
 - Animated great-circle flights on a draggable globe
 - Timeline playback, route history, filters and speed controls
 - Statistics for years, distance, airports, countries, airlines and aircraft
+- Airline passport collections for fleet types, individual registrations and curated special liveries
+- Milestone-flight sequences for every final digit from 0 through 9
 - Searchable logbook with CSV and normalized JSON export
 - Browser import for `.xlsx`, `.xls`, `.csv` and `.json`
 - English and Chinese source-column aliases

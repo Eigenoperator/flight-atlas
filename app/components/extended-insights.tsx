@@ -76,6 +76,7 @@ export function ExtendedInsights({
   const [hoveredHistoricDate, setHoveredHistoricDate] = useState<{ monthDay: string; x: number; y: number } | null>(null);
   const [showAllAirportsRanking, setShowAllAirportsRanking] = useState(false);
   const [showAllConnectionRanking, setShowAllConnectionRanking] = useState(false);
+  const [milestoneEnding, setMilestoneEnding] = useState(0);
 
   const trips = groupFlightsIntoTrips(filteredFlights);
   const recentTrips = [...trips].reverse().slice(0, 8);
@@ -233,7 +234,10 @@ export function ExtendedInsights({
     });
   }
 
-  const milestoneSequences = [1, ...Array.from({ length: Math.floor(allFlights.length / 10) }, (_, index) => (index + 1) * 10)];
+  const milestoneSequences = milestoneEnding === 0
+    ? [1, ...Array.from({ length: Math.floor(allFlights.length / 10) }, (_, index) => (index + 1) * 10)]
+    : Array.from({ length: allFlights.length }, (_, index) => index + 1)
+      .filter((sequence) => sequence % 10 === milestoneEnding);
   const milestoneFlights = milestoneSequences
     .map((sequence) => ({ sequence, flight: allFlights[sequence - 1] }))
     .filter((item): item is { sequence: number; flight: Flight } => Boolean(item.flight));
@@ -535,9 +539,28 @@ export function ExtendedInsights({
       </article>
 
       <article className="chart-panel milestone-flights-panel">
-        <div className="panel-title">
+        <div className="panel-title milestone-flights-title">
           <div><span>16</span><h3>Milestone flights</h3></div>
-          <p>First flight, then every tenth flight in the complete logbook</p>
+          <p>{milestoneEnding === 0
+            ? 'First flight, then every tenth flight in the complete logbook'
+            : `Every flight number ending in ${milestoneEnding}`}</p>
+        </div>
+        <div className="milestone-ending-controls">
+          <span>Flight number ending in</span>
+          <div role="group" aria-label="Choose the final digit of milestone flight numbers">
+            {Array.from({ length: 10 }, (_, digit) => (
+              <button
+                type="button"
+                key={digit}
+                className={milestoneEnding === digit ? 'is-active' : ''}
+                aria-pressed={milestoneEnding === digit}
+                onClick={() => setMilestoneEnding(digit)}
+              >
+                {digit}
+              </button>
+            ))}
+          </div>
+          <small>{milestoneFlights.length} {milestoneFlights.length === 1 ? 'flight' : 'flights'} in this sequence</small>
         </div>
         <div className="milestone-flight-grid">
           {milestoneFlights.map(({ sequence, flight }) => (

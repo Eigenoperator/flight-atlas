@@ -5,6 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { geoDistance, geoGraticule10, geoOrthographic, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import land110 from 'world-atlas/land-110m.json';
+import { AirlinePassport } from './components/airline-passport';
 import { ExtendedInsights } from './components/extended-insights';
 import demoFlightData from './data/demo-flight-data.json';
 import { airlineLogoUrl } from './lib/airline-logos';
@@ -608,6 +609,7 @@ function FlightAtlasExperience() {
           <a href="#import">Import</a>
           <a href="#map">Map</a>
           <a href="#patterns">Patterns</a>
+          <a href="#passport">Passport</a>
           <a href="#logbook">Logbook</a>
         </nav>
         <p className="topbar-meta">Private by design · {dataSource}</p>
@@ -1270,6 +1272,13 @@ function FlightAtlasExperience() {
             comparisonFlights={comparisonFlights}
             selectedAirportCode={selectedAirportCode}
             onSelectAirport={setSelectedAirportCode}
+            onSelectFlight={selectFlightById}
+          />
+
+          <AirlinePassport
+            flights={flights}
+            airlineNames={airlineNames}
+            aircraftNames={aircraftNames}
             onSelectFlight={selectFlightById}
           />
         </div>
